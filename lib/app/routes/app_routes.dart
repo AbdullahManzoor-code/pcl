@@ -3,39 +3,47 @@ part of 'app_pages.dart';
 
 abstract class Routes {
   Routes._();
-  static const HOME = _Paths.HOME;
-  static const AUTH = _Paths.AUTH;
-  static const ONBOARDING = _Paths.ONBOARDING;
-  static const LANGUAGE_SELECTION = _Paths.LANGUAGE_SELECTION;
-  static const ASSESSMENT = _Paths.ASSESSMENT;
-  static const DASHBOARD = _Paths.DASHBOARD;
-  static const LEARNING = _Paths.LEARNING;
-  static const RESULTS = _Paths.RESULTS;
-  static const COURSE_DETAILS = _Paths.COURSE_DETAILS;
-  static const PROFILE = _Paths.PROFILE;
-  static const QUIZ = _Paths.QUIZ;
-  static const MAIN = _Paths.MAIN;
-  static const COURSES = _Paths.COURSES;
-  static const MY_COURSES = _Paths.MY_COURSES;
-  static const NOTIFICATIONS = _Paths.NOTIFICATIONS;
+  static const home = _Paths.home;
+  static const auth = _Paths.auth;
+  static const onboarding = _Paths.onboarding;
+  static const languageSelection = _Paths.languageSelection;
+  static const assessment = _Paths.assessment;
+  static const dashboard = _Paths.dashboard;
+  static const learning = _Paths.learning;
+  static const results = _Paths.results;
+  static const courseDetails = _Paths.courseDetails;
+  static const profile = _Paths.profile;
+  static const quiz = _Paths.quiz;
+  static const main = _Paths.main;
+  static const courses = _Paths.courses;
+  static const myCourses = _Paths.myCourses;
+  static const notifications = _Paths.notifications;
+  static const landing = _Paths.landing;
+  static const practice = _Paths.practice;
+  static const analytics = _Paths.analytics;
+  static const register = _Paths.register;
 }
 
 abstract class _Paths {
   _Paths._();
-  static const HOME = '/home';
-  static const PROFILE = '/profile';
+  static const home = '/home';
+  static const profile = '/profile';
 
-  static const AUTH = '/auth';
-  static const ONBOARDING = '/onboarding';
-  static const LANGUAGE_SELECTION = '/language-selection';
-  static const ASSESSMENT = '/assessment';
-  static const DASHBOARD = '/dashboard';
-  static const LEARNING = '/learning';
-  static const RESULTS = '/results';
-  static const COURSE_DETAILS = '/course-details';
-  static const QUIZ = '/quiz';
-  static const MAIN = '/main';
-  static const COURSES = '/courses';
-  static const MY_COURSES = '/my-courses';
-  static const NOTIFICATIONS = '/notifications';
+  static const auth = '/login';
+  static const onboarding = '/onboarding';
+  static const languageSelection = '/language-selection';
+  static const assessment = '/assessment';
+  static const dashboard = '/dashboard';
+  static const learning = '/learning';
+  static const results = '/results';
+  static const courseDetails = '/course-details';
+  static const quiz = '/quiz';
+  static const main = '/main';
+  static const courses = '/courses';
+  static const myCourses = '/my-courses';
+  static const notifications = '/notifications';
+  static const landing = '/landing';
+  static const practice = '/practice';
+  static const analytics = '/analytics';
+  static const register = '/register';
 }

@@ -40,6 +40,17 @@ dependencies:
   permission_handler: ^11.3.0
   get_storage: ^2.1.1
   fl_chart: ^0.70.0
+  flutter_screenutil: ^5.9.3
+  intl: ^0.19.0
+
+  # Phase 1: Code Quality & Performance
+  logger: ^2.0.2+1
+  cached_network_image: ^3.3.1
+
+  # Phase 2: UX Enhancements
+  shimmer: ^3.0.0
+  connectivity_plus: ^6.0.1
+  lottie: ^3.1.0
 
 dev_dependencies:
   flutter_test:

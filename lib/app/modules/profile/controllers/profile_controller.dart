@@ -2,19 +2,42 @@ import 'package:get/get.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../data/services/mock_api_service.dart';
+import '../../../data/services/notification_service.dart';
+import '../../../data/services/theme_service.dart';
 
 class ProfileController extends GetxController {
   late final AuthRepository _authRepository;
+  final ThemeService _themeService = Get.find<ThemeService>();
+  final NotificationService _notificationService =
+      Get.find<NotificationService>();
 
   final user = Rxn<User>();
   final isLoading = true.obs;
 
+  // Profile Form Fields
+  final nameValue = ''.obs;
+  final usernameValue = ''.obs;
+  final emailValue = ''.obs;
+
+  // Notification Settings
+  final emailNotifications = true.obs;
+  final testReminders = true.obs;
+  final weeklyProgress = false.obs;
+  final achievementAlerts = true.obs;
+
   @override
   void onInit() {
     super.onInit();
-    // In real app, inject this
     _authRepository = AuthRepositoryImpl(Get.find<MockApiService>());
     fetchProfile();
+
+    // Sync with notification service
+    emailNotifications.value = _notificationService.isEnabled.value;
+
+    // Listen to changes and update service
+    emailNotifications.listen((val) {
+      _notificationService.toggleNotifications(val);
+    });
   }
 
   void fetchProfile() async {
@@ -22,41 +45,35 @@ class ProfileController extends GetxController {
     try {
       final mockUser = await _authRepository.login('mock', 'mock');
       user.value = mockUser;
+
+      // Initialize form fields
+      nameValue.value = mockUser?.name ?? '';
+      usernameValue.value = 'mian_user';
+      emailValue.value = mockUser?.email ?? '';
     } catch (e) {
       print('Error fetching profile: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to load profile data.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> updateProfile({String? name, String? bio}) async {
+  Future<void> updateProfile() async {
     if (user.value == null) return;
 
-    // Validation
-    if (name != null && name.trim().isEmpty) {
+    if (nameValue.value.trim().isEmpty) {
       Get.snackbar('Validation', 'Name cannot be empty');
       return;
     }
 
     isLoading.value = true;
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 1000)); // Mock delay
 
       final mockApi = Get.find<MockApiService>();
-      if (name != null) mockApi.updateProfile(name.trim());
-      if (bio != null) mockApi.updateBio(bio ?? '');
+      mockApi.updateProfile(nameValue.value.trim());
 
-      // Fix null-safety warning by assigning to a local non-nullable variable
       final currentUser = user.value!;
-      user.value = currentUser.copyWith(
-        name: name?.trim() ?? currentUser.name,
-        bio: bio ?? currentUser.bio,
-      );
+      user.value = currentUser.copyWith(name: nameValue.value.trim());
 
       Get.snackbar(
         'Success',
@@ -65,14 +82,29 @@ class ProfileController extends GetxController {
         backgroundColor: Get.theme.primaryColor.withOpacity(0.1),
       );
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to update profile. Please try again.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.errorContainer,
-      );
+      Get.snackbar('Error', 'Failed to update profile.');
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void toggleTheme() {
+    _themeService.changeThemeMode(!_themeService.isDarkMode());
+  }
+
+  bool get isDarkMode => _themeService.isDarkMode();
+
+  void logout() {
+    Get.defaultDialog(
+      title: 'Logout',
+      middleText: 'Are you sure you want to logout?',
+      textConfirm: 'Logout',
+      textCancel: 'Cancel',
+      confirmTextColor: Get.theme.canvasColor,
+      onConfirm: () {
+        Get.back();
+        Get.offAllNamed('/auth'); // Route to auth/login
+      },
+    );
   }
 }

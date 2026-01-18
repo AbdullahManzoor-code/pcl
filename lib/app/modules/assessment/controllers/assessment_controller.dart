@@ -73,7 +73,7 @@ class AssessmentController extends GetxController {
 
     // Pass data to results
     Get.offNamed(
-      Routes.RESULTS,
+      Routes.results,
       arguments: {
         'total': questions.length,
         'correct': correctCount,

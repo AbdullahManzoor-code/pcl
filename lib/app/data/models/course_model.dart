@@ -1,4 +1,5 @@
 import 'review_model.dart';
+import 'topic_model.dart';
 
 class Course {
   final String id;
@@ -13,6 +14,12 @@ class Course {
   final double rating;
   final int reviewCount;
   final List<Review> reviews;
+  final int accuracy;
+  final int topicsCompleted;
+  final int totalTopics;
+  final double difficulty; // 0.0 - 1.0 (Easy, Medium, Hard)
+  final String lastActivity;
+  final List<Topic> topics;
 
   Course({
     required this.id,
@@ -27,6 +34,12 @@ class Course {
     this.rating = 0.0,
     this.reviewCount = 0,
     this.reviews = const [],
+    this.accuracy = 0,
+    this.topicsCompleted = 0,
+    this.totalTopics = 0,
+    this.difficulty = 0.5,
+    this.lastActivity = 'Just now',
+    this.topics = const [],
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
@@ -50,6 +63,14 @@ class Course {
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       reviewCount: json['review_count'] ?? 0,
       reviews: reviewsList,
+      accuracy: json['accuracy'] ?? 0,
+      topicsCompleted: json['topics_completed'] ?? 0,
+      totalTopics: json['total_topics'] ?? 0,
+      difficulty: (json['difficulty'] as num?)?.toDouble() ?? 0.5,
+      lastActivity: json['last_activity'] ?? 'Just now',
+      topics:
+          (json['topics'] as List?)?.map((e) => Topic.fromJson(e)).toList() ??
+          [],
     );
   }
 
@@ -67,6 +88,12 @@ class Course {
       'rating': rating,
       'review_count': reviewCount,
       'reviews': reviews.map((v) => v.toJson()).toList(),
+      'accuracy': accuracy,
+      'topics_completed': topicsCompleted,
+      'total_topics': totalTopics,
+      'last_activity': lastActivity,
+      'difficulty': difficulty,
+      'topics': topics.map((v) => v.toJson()).toList(),
     };
   }
 }

@@ -3,6 +3,8 @@ import '../../../data/models/course_model.dart';
 import '../../../data/repositories/course_repository.dart';
 import '../../../data/services/mock_api_service.dart';
 import '../../../routes/app_pages.dart';
+import '../../../core/utils/app_logger.dart';
+import '../../../core/utils/haptic_utils.dart';
 
 class CoursesController extends GetxController {
   late final CourseRepository _courseRepository;
@@ -14,10 +16,14 @@ class CoursesController extends GetxController {
   // Search and Filter
   final searchText = ''.obs;
   final selectedCategory = 'All'.obs;
+  final selectedDifficulty = 'All'.obs;
+  final sortBy = 'Name'.obs; // Name, Progress, Rating
   final categories = <String>['All'].obs;
+  final difficulties = <String>['All', 'Easy', 'Medium', 'Hard'].obs;
+  final sortOptions = <String>['Name', 'Progress', 'Rating'].obs;
 
   List<Course> get filteredCourses {
-    return courses.where((course) {
+    var filtered = courses.where((course) {
       final matchesSearch =
           course.title.toLowerCase().contains(searchText.value.toLowerCase()) ||
           course.description.toLowerCase().contains(
@@ -26,8 +32,26 @@ class CoursesController extends GetxController {
       final matchesCategory =
           selectedCategory.value == 'All' ||
           course.category == selectedCategory.value;
-      return matchesSearch && matchesCategory;
+      final matchesDifficulty =
+          selectedDifficulty.value == 'All' ||
+          course.level == selectedDifficulty.value;
+      return matchesSearch && matchesCategory && matchesDifficulty;
     }).toList();
+
+    // Apply sorting
+    switch (sortBy.value) {
+      case 'Progress':
+        filtered.sort((a, b) => b.progress.compareTo(a.progress));
+        break;
+      case 'Rating':
+        filtered.sort((a, b) => b.rating.compareTo(a.rating));
+        break;
+      case 'Name':
+      default:
+        filtered.sort((a, b) => a.title.compareTo(b.title));
+    }
+
+    return filtered;
   }
 
   @override
@@ -51,7 +75,12 @@ class CoursesController extends GetxController {
           .toList();
       categories.assignAll(['All', ...distinctCategories]);
     } catch (e) {
-      print('Error fetching courses: $e');
+      AppLogger.error('Error fetching courses', e);
+      Get.snackbar(
+        'Error',
+        'Failed to load courses. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -59,9 +88,19 @@ class CoursesController extends GetxController {
 
   void toggleView() {
     isGridView.value = !isGridView.value;
+    HapticUtils.selectionClick();
   }
 
   void openCourse(Course course) {
-    Get.toNamed(Routes.COURSE_DETAILS, arguments: course);
+    HapticUtils.lightImpact();
+    Get.toNamed(Routes.courseDetails, arguments: {'course': course});
+  }
+
+  void clearFilters() {
+    searchText.value = '';
+    selectedCategory.value = 'All';
+    selectedDifficulty.value = 'All';
+    sortBy.value = 'Name';
+    HapticUtils.mediumImpact();
   }
 }

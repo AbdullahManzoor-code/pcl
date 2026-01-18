@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppCard extends StatelessWidget {
   final Widget child;
@@ -58,7 +59,7 @@ class AppCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(borderRadius ?? 20),
           child: Padding(
-            padding: padding ?? const EdgeInsets.all(16),
+            padding: padding ?? EdgeInsets.all(16.r),
             child: child,
           ),
         ),

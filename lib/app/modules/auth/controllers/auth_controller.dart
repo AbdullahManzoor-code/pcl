@@ -47,7 +47,7 @@ class AuthController extends GetxController {
     try {
       final authService = Get.find<MockApiService>();
       await authService.login(emailController.text, passwordController.text);
-      Get.offAllNamed(Routes.LANGUAGE_SELECTION);
+      Get.offAllNamed(Routes.onboarding);
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -64,7 +64,7 @@ class AuthController extends GetxController {
     try {
       final authService = Get.find<MockApiService>();
       await authService.socialLogin(provider);
-      Get.offAllNamed(Routes.MAIN);
+      Get.offAllNamed(Routes.main);
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -103,6 +103,6 @@ class AuthController extends GetxController {
     isLoading.value = false;
 
     // Mock Success
-    Get.offAllNamed(Routes.ONBOARDING);
+    Get.offAllNamed(Routes.onboarding);
   }
 }

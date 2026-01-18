@@ -140,7 +140,7 @@ class CoursesView extends GetView<CoursesController> {
   Widget _buildCourseGridCard(BuildContext context, Course course) {
     return AppCard(
       onTap: () => Get.toNamed(
-        Routes.COURSE_DETAILS,
+        Routes.courseDetails,
         arguments: {
           'course': course,
           'heroTag': 'explore_course_image_${course.id}',
@@ -155,7 +155,7 @@ class CoursesView extends GetView<CoursesController> {
             child: Container(
               height: 100,
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.05),
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(20),
                 ),
@@ -229,7 +229,7 @@ class CoursesView extends GetView<CoursesController> {
   Widget _buildCourseListCard(BuildContext context, Course course) {
     return AppCard(
       onTap: () => Get.toNamed(
-        Routes.COURSE_DETAILS,
+        Routes.courseDetails,
         arguments: {
           'course': course,
           'heroTag': 'explore_course_image_${course.id}',
@@ -244,7 +244,7 @@ class CoursesView extends GetView<CoursesController> {
               height: 80,
               width: 80,
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.05),
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(Icons.code, color: Theme.of(context).primaryColor),
