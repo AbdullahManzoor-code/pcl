@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/notifications_controller.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/utils/haptic_utils.dart';
+import '../../../core/theme/app_theme.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class NotificationsView extends GetView<NotificationsController> {
   const NotificationsView({Key? key}) : super(key: key);
@@ -12,14 +15,12 @@ class NotificationsView extends GetView<NotificationsController> {
 
     return Scaffold(
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
           _buildSliverAppBar(context),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 16.0,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
               child: _buildSettingsCard(context, isDark),
             ),
           ),
@@ -32,13 +33,16 @@ class NotificationsView extends GetView<NotificationsController> {
                     children: [
                       Icon(
                         Icons.notifications_off_rounded,
-                        size: 64,
+                        size: 64.sp,
                         color: Colors.grey[400],
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16.h),
                       Text(
                         'No new notifications',
-                        style: TextStyle(color: Colors.grey[500]),
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 14.sp,
+                        ),
                       ),
                     ],
                   ),
@@ -66,7 +70,10 @@ class NotificationsView extends GetView<NotificationsController> {
       actions: [
         IconButton(
           icon: const Icon(Icons.delete_sweep_rounded),
-          onPressed: () => _showClearConfirmation(context),
+          onPressed: () {
+            HapticUtils.lightImpact();
+            _showClearConfirmation(context);
+          },
           tooltip: 'Clear All',
         ),
       ],
@@ -75,11 +82,11 @@ class NotificationsView extends GetView<NotificationsController> {
 
   Widget _buildSettingsCard(BuildContext context, bool isDark) {
     return AppCard(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.r),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(10.r),
             decoration: BoxDecoration(
               color: Theme.of(context).primaryColor.withOpacity(0.1),
               shape: BoxShape.circle,
@@ -87,21 +94,24 @@ class NotificationsView extends GetView<NotificationsController> {
             child: Icon(
               Icons.notifications_active_rounded,
               color: Theme.of(context).primaryColor,
-              size: 24,
+              size: 24.sp,
             ),
           ),
-          const SizedBox(width: 16),
-          const Expanded(
+          SizedBox(width: 16.w),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Push Notifications',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16.sp,
+                  ),
                 ),
                 Text(
                   'Receive course updates',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(fontSize: 12.sp, color: Colors.grey),
                 ),
               ],
             ),
@@ -109,7 +119,10 @@ class NotificationsView extends GetView<NotificationsController> {
           Obx(
             () => Switch(
               value: controller.isNotificationsEnabled,
-              onChanged: (val) => controller.toggleNotifications(val),
+              onChanged: (val) {
+                HapticUtils.selectionClick();
+                controller.toggleNotifications(val);
+              },
             ),
           ),
         ],
@@ -125,10 +138,13 @@ class NotificationsView extends GetView<NotificationsController> {
     final bool isRead = item['isRead'];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 6.h),
       child: AppCard(
-        onTap: () => controller.markAsRead(item['id']),
-        padding: const EdgeInsets.all(16),
+        onTap: () {
+          HapticUtils.lightImpact();
+          controller.markAsRead(item['id']);
+        },
+        padding: EdgeInsets.all(16.r),
         color: isRead ? null : Theme.of(context).primaryColor.withOpacity(0.05),
         border: isRead
             ? null
@@ -139,7 +155,7 @@ class NotificationsView extends GetView<NotificationsController> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              radius: 20,
+              radius: 20.r,
               backgroundColor: isRead
                   ? Colors.grey.withOpacity(0.1)
                   : Theme.of(context).primaryColor.withOpacity(0.1),
@@ -148,10 +164,10 @@ class NotificationsView extends GetView<NotificationsController> {
                     ? Icons.notifications_none_rounded
                     : Icons.notifications_active_rounded,
                 color: isRead ? Colors.grey : Theme.of(context).primaryColor,
-                size: 20,
+                size: 20.sp,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,22 +176,22 @@ class NotificationsView extends GetView<NotificationsController> {
                     item['title'],
                     style: TextStyle(
                       fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
-                      fontSize: 15,
+                      fontSize: 15.sp,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6.h),
                   Text(
                     item['body'],
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 13.sp,
                       color: isDark ? Colors.grey[400] : Colors.grey[700],
                       height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   Text(
                     item['time'],
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    style: TextStyle(fontSize: 11.sp, color: Colors.grey[500]),
                   ),
                 ],
               ),
@@ -183,8 +199,8 @@ class NotificationsView extends GetView<NotificationsController> {
             if (!isRead)
               Container(
                 margin: const EdgeInsets.only(top: 4),
-                height: 8,
-                width: 8,
+                height: 8.w,
+                width: 8.w,
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor,
                   shape: BoxShape.circle,
@@ -197,17 +213,67 @@ class NotificationsView extends GetView<NotificationsController> {
   }
 
   void _showClearConfirmation(BuildContext context) {
-    Get.defaultDialog(
-      title: 'Clear All',
-      middleText: 'Are you sure you want to clear all notifications?',
-      textConfirm: 'Clear',
-      textCancel: 'Cancel',
-      confirmTextColor: Colors.white,
-      buttonColor: Colors.redAccent,
-      onConfirm: () {
-        controller.clearAll();
-        Get.back();
-      },
+    Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.all(24.r),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40.w,
+              height: 4.h,
+              margin: EdgeInsets.only(bottom: 24.h),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            Text(
+              'Clear All Notifications',
+              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 12.h),
+            const Text(
+              'Are you sure you want to clear all your notifications? This action cannot be undone.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+            SizedBox(height: 32.h),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Get.back(),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      controller.clearAll();
+                      Get.back();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                    child: const Text('Clear All'),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16.h),
+          ],
+        ),
+      ),
     );
   }
 }

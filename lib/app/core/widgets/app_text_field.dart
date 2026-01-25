@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppTextField extends StatelessWidget {
   final String? hintText;
@@ -30,7 +31,7 @@ class AppTextField extends StatelessWidget {
       validator: validator,
       obscureText: isPassword,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 15),
+      style: TextStyle(fontSize: 15.sp),
       decoration: InputDecoration(
         hintText: hintText,
         prefixIcon: prefixIcon != null

@@ -3,6 +3,12 @@ import 'package:get/get.dart';
 // Bindings will be added as we create them
 import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/auth/views/login_view.dart';
+import '../modules/auth/views/register_view.dart';
+import '../modules/auth/views/forgot_password_view.dart';
+import '../modules/auth/views/reset_email_sent_view.dart';
+import '../modules/auth/views/reset_password_view.dart';
+import '../modules/auth/views/email_verification_view.dart';
+import '../modules/auth/views/verification_sent_view.dart';
 import '../modules/onboarding/bindings/onboarding_binding.dart';
 import '../modules/onboarding/views/onboarding_view.dart';
 import '../modules/language_selection/bindings/language_selection_binding.dart';
@@ -17,6 +23,7 @@ import '../modules/learning/bindings/learning_binding.dart';
 import '../modules/learning/views/learning_view.dart';
 import '../modules/profile/bindings/profile_binding.dart';
 import '../modules/profile/views/profile_view.dart';
+import '../modules/profile/views/change_password_view.dart';
 import '../modules/course_details/bindings/course_details_binding.dart';
 import '../modules/course_details/views/course_details_view.dart';
 import '../modules/quiz/bindings/quiz_binding.dart';
@@ -29,85 +36,141 @@ import '../modules/notifications/bindings/notifications_binding.dart';
 import '../modules/notifications/views/notifications_view.dart';
 import '../modules/my_courses/bindings/my_courses_binding.dart';
 import '../modules/my_courses/views/my_courses_view.dart';
+import '../modules/landing/bindings/landing_binding.dart';
+import '../modules/landing/views/landing_view.dart';
+import '../modules/practice/bindings/practice_binding.dart';
+import '../modules/practice/views/practice_view.dart';
+import '../modules/analytics/bindings/analytics_binding.dart';
+import '../modules/analytics/views/analytics_view.dart';
 
 part 'app_routes.dart';
 
 class AppPages {
   AppPages._();
 
-  static const INITIAL = Routes.ONBOARDING;
+  static const initial = Routes.auth;
 
   static final routes = [
     // We will populate this as we build modules
     GetPage(
-      name: _Paths.AUTH,
+      name: _Paths.auth,
       page: () => const LoginView(),
       binding: AuthBinding(),
     ),
     GetPage(
-      name: _Paths.ONBOARDING,
+      name: _Paths.register,
+      page: () => const RegisterView(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: _Paths.onboarding,
       page: () => const OnboardingView(),
       binding: OnboardingBinding(),
     ),
     GetPage(
-      name: _Paths.LANGUAGE_SELECTION,
+      name: _Paths.languageSelection,
       page: () => const LanguageSelectionView(),
       binding: LanguageSelectionBinding(),
     ),
     GetPage(
-      name: _Paths.RESULTS,
+      name: _Paths.results,
       page: () => const ResultsView(),
       binding: ResultsBinding(),
     ),
     GetPage(
-      name: _Paths.ASSESSMENT,
+      name: _Paths.assessment,
       page: () => const AssessmentView(),
       binding: AssessmentBinding(),
     ),
     GetPage(
-      name: _Paths.DASHBOARD,
+      name: _Paths.dashboard,
       page: () => const DashboardView(),
       binding: DashboardBinding(),
     ),
     GetPage(
-      name: _Paths.LEARNING,
+      name: _Paths.learning,
       page: () => const LearningView(),
       binding: LearningBinding(),
     ),
     GetPage(
-      name: _Paths.PROFILE,
+      name: _Paths.profile,
       page: () => const ProfileView(),
       binding: ProfileBinding(),
     ),
     GetPage(
-      name: _Paths.COURSE_DETAILS,
+      name: _Paths.courseDetails,
       page: () => const CourseDetailsView(),
       binding: CourseDetailsBinding(),
     ),
     GetPage(
-      name: _Paths.QUIZ,
+      name: _Paths.quiz,
       page: () => const QuizView(),
       binding: QuizBinding(),
     ),
     GetPage(
-      name: _Paths.MAIN,
+      name: _Paths.main,
       page: () => const MainView(),
       binding: MainBinding(),
     ),
     GetPage(
-      name: _Paths.COURSES,
+      name: _Paths.courses,
       page: () => const CoursesView(),
       binding: CoursesBinding(),
     ),
     GetPage(
-      name: _Paths.NOTIFICATIONS,
+      name: _Paths.notifications,
       page: () => const NotificationsView(),
       binding: NotificationsBinding(),
     ),
     GetPage(
-      name: _Paths.MY_COURSES,
+      name: _Paths.myCourses,
       page: () => const MyCoursesView(),
       binding: MyCoursesBinding(),
+    ),
+    GetPage(
+      name: _Paths.landing,
+      page: () => const LandingView(),
+      binding: LandingBinding(),
+    ),
+    GetPage(
+      name: _Paths.practice,
+      page: () => const PracticeView(),
+      binding: PracticeBinding(),
+    ),
+    GetPage(
+      name: _Paths.analytics,
+      page: () => const AnalyticsView(),
+      binding: AnalyticsBinding(),
+    ),
+    GetPage(
+      name: _Paths.forgotPassword,
+      page: () => const ForgotPasswordView(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: _Paths.resetEmailSent,
+      page: () => const ResetEmailSentView(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: _Paths.resetPassword,
+      page: () => const ResetPasswordView(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: _Paths.changePassword,
+      page: () => const ChangePasswordView(),
+      binding: ProfileBinding(),
+    ),
+    GetPage(
+      name: _Paths.emailVerification,
+      page: () => const EmailVerificationView(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: _Paths.verificationSent,
+      page: () => const VerificationSentView(),
+      binding: AuthBinding(),
     ),
   ];
 }

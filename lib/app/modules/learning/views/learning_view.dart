@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/learning_controller.dart';
 import '../../../core/widgets/app_code_editor.dart';
+import '../../../core/utils/haptic_utils.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LearningView extends GetView<LearningController> {
   const LearningView({super.key});
@@ -26,26 +29,27 @@ class LearningView extends GetView<LearningController> {
 
   Widget _buildContentView(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(16.r),
       child: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Topic Banner (Mock Image)
                   Container(
-                    height: 200,
+                    height: 200.h,
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: Colors.blue.shade100,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16.r),
                     ),
                     child: Center(
                       child: Icon(
                         Icons.image,
-                        size: 80,
+                        size: 80.sp,
                         color: Colors.blue.shade300,
                       ),
                     ),
@@ -55,11 +59,11 @@ class LearningView extends GetView<LearningController> {
                   // Content Text (Simplified rendering)
                   Text(
                     controller.content,
-                    style: const TextStyle(fontSize: 16, height: 1.6),
+                    style: GoogleFonts.inter(fontSize: 16.sp, height: 1.6),
                   ),
 
                   if (controller.topic['code'] != null) ...[
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24.h),
                     AppCodeEditor(
                       code: controller.topic['code'],
                       language: controller.topic['language'] ?? 'dart',
@@ -69,15 +73,28 @@ class LearningView extends GetView<LearningController> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: controller.startQuiz,
+              onPressed: () {
+                HapticUtils.mediumImpact();
+                controller.startQuiz();
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green, // Differentiate typical action
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
               ),
-              child: const Text('Take Quiz'),
+              child: Text(
+                'Take Quiz',
+                style: GoogleFonts.outfit(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -87,24 +104,28 @@ class LearningView extends GetView<LearningController> {
 
   Widget _buildQuizView(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(16.r),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Mini Quiz',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: GoogleFonts.inter(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           Obx(
             () => Text(
               'Question ${controller.quizQuestionIndex.value + 1}/${controller.quizQuestions.length}',
-              style: TextStyle(color: Colors.grey[600]),
+              style: GoogleFonts.inter(
+                color: Colors.grey[600],
+                fontSize: 14.sp,
+              ),
             ),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: 32.h),
 
           Obx(() {
             final question =
@@ -114,31 +135,37 @@ class LearningView extends GetView<LearningController> {
               children: [
                 Text(
                   question['question'] as String,
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: GoogleFonts.inter(
+                    fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
                 ...(question['options'] as List<String>).asMap().entries.map((
                   entry,
                 ) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
+                    padding: EdgeInsets.only(bottom: 12.h),
                     child: SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () => controller.answerQuiz(entry.key),
+                        onPressed: () {
+                          HapticUtils.selectionClick();
+                          controller.answerQuiz(entry.key);
+                        },
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.all(16),
+                          padding: EdgeInsets.all(16.r),
                           alignment: Alignment.centerLeft,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(12.r),
                           ),
                         ),
                         child: Text(
                           entry.value,
-                          style: const TextStyle(color: Colors.black87),
+                          style: GoogleFonts.inter(
+                            color: Colors.black87,
+                            fontSize: 16.sp,
+                          ),
                         ),
                       ),
                     ),

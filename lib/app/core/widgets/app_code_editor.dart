@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'app_card.dart';
 
@@ -53,7 +54,7 @@ class _AppCodeEditorState extends State<AppCodeEditor> {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
             decoration: BoxDecoration(
               color: isDark
                   ? Colors.white.withOpacity(0.05)
@@ -73,7 +74,7 @@ class _AppCodeEditorState extends State<AppCodeEditor> {
                 Text(
                   widget.language.toUpperCase(),
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.grey[400] : Colors.grey[600],
                   ),
@@ -98,12 +99,12 @@ class _AppCodeEditorState extends State<AppCodeEditor> {
 
           // Code Area
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.r),
             child: SelectableText(
               widget.code,
               style: TextStyle(
                 fontFamily: 'monospace',
-                fontSize: 14,
+                fontSize: 14.sp,
                 color: isDark ? Colors.blue[200] : Colors.blue[900],
                 height: 1.5,
               ),
@@ -112,7 +113,7 @@ class _AppCodeEditorState extends State<AppCodeEditor> {
 
           // Actions & Output
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12.r),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -140,7 +141,7 @@ class _AppCodeEditorState extends State<AppCodeEditor> {
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(12.r),
                     decoration: BoxDecoration(
                       color: isDark
                           ? Colors.black.withOpacity(0.3)
@@ -150,9 +151,9 @@ class _AppCodeEditorState extends State<AppCodeEditor> {
                     ),
                     child: Text(
                       _output!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'monospace',
-                        fontSize: 12,
+                        fontSize: 12.sp,
                         color: Colors.green,
                       ),
                     ),

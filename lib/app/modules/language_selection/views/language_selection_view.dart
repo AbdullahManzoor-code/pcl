@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
+import 'package:get/get_state_manager/src/simple/get_view.dart';
+
 import '../controllers/language_selection_controller.dart';
+import '../../../core/utils/haptic_utils.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class LanguageSelectionView extends GetView<LanguageSelectionController> {
   const LanguageSelectionView({super.key});
@@ -10,9 +15,9 @@ class LanguageSelectionView extends GetView<LanguageSelectionController> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Choose Language',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontSize: 18.sp),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -34,7 +39,7 @@ class LanguageSelectionView extends GetView<LanguageSelectionController> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(16.r),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -43,31 +48,33 @@ class LanguageSelectionView extends GetView<LanguageSelectionController> {
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
+                    fontSize: 24.sp,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
                 Expanded(
                   child: GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 1.0,
-                        ),
+                    physics: const BouncingScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16.w,
+                      mainAxisSpacing: 16.h,
+                      childAspectRatio: 1.0,
+                    ),
                     itemCount: controller.languages.length,
                     itemBuilder: (context, index) {
                       final lang = controller.languages[index];
                       return InkWell(
                         onTap: () {
+                          HapticUtils.selectionClick();
                           controller.selectLanguage(lang['name'] as String);
                           Get.to(() => const LevelSelectionView());
                         },
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(20.r),
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(20.r),
                             border: Border.all(
                               color: Colors.white.withOpacity(0.2),
                             ),
@@ -76,29 +83,29 @@ class LanguageSelectionView extends GetView<LanguageSelectionController> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(16),
+                                padding: EdgeInsets.all(16.r),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 5),
+                                      blurRadius: 10.r,
+                                      offset: Offset(0, 5.h),
                                     ),
                                   ],
                                 ),
                                 child: Icon(
                                   lang['icon'] as IconData,
-                                  size: 40,
+                                  size: 40.sp,
                                   color: Theme.of(context).primaryColor,
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16.h),
                               Text(
                                 lang['name'] as String,
-                                style: const TextStyle(
-                                  fontSize: 18,
+                                style: TextStyle(
+                                  fontSize: 18.sp,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
@@ -127,9 +134,9 @@ class LevelSelectionView extends GetView<LanguageSelectionController> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Select Level',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontSize: 18.sp),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -145,7 +152,7 @@ class LevelSelectionView extends GetView<LanguageSelectionController> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(16.r),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -154,23 +161,28 @@ class LevelSelectionView extends GetView<LanguageSelectionController> {
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
+                    fontSize: 24.sp,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
                 Expanded(
                   child: ListView.separated(
+                    physics: const BouncingScrollPhysics(),
                     itemCount: controller.levels.length,
-                    separatorBuilder: (ctx, i) => const SizedBox(height: 16),
+                    separatorBuilder: (ctx, i) => SizedBox(height: 16.h),
                     itemBuilder: (context, index) {
                       final level = controller.levels[index];
                       return InkWell(
-                        onTap: () => controller.selectLevel(level),
-                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          HapticUtils.selectionClick();
+                          controller.selectLevel(level);
+                        },
+                        borderRadius: BorderRadius.circular(16.r),
                         child: Container(
-                          padding: const EdgeInsets.all(24),
+                          padding: EdgeInsets.all(24.r),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(16.r),
                             border: Border.all(
                               color: Colors.white.withOpacity(0.2),
                             ),
@@ -180,15 +192,15 @@ class LevelSelectionView extends GetView<LanguageSelectionController> {
                             children: [
                               Text(
                                 level,
-                                style: const TextStyle(
-                                  fontSize: 18,
+                                style: TextStyle(
+                                  fontSize: 18.sp,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
                               ),
-                              const Icon(
+                              Icon(
                                 Icons.arrow_forward_ios,
-                                size: 16,
+                                size: 16.sp,
                                 color: Colors.white70,
                               ),
                             ],

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/theme/app_theme.dart';
 
 class LearningController extends GetxController {
   final topic = <String, dynamic>{}.obs;
@@ -76,24 +79,85 @@ This simple line of code outputs text to the screen.
     // Determine if passed (e.g., > 50%)
     bool passed = (quizScore.value / quizQuestions.length) >= 0.5;
 
-    Get.defaultDialog(
-      title: passed ? 'Congratulations!' : 'Try Again',
-      middleText: passed
-          ? 'You passed the quiz! Next topic unlocked.'
-          : 'You need to score at least 50% to pass.',
-      confirm: ElevatedButton(
-        onPressed: () {
-          Get.back(); // Close dialog
-          if (passed) {
-            // Logic to unlock next topic would go here (update persistent state)
-            Get.back(); // Go back to dashboard
-          } else {
-            isQuizMode.value = false; // Retry learning
-          }
-        },
-        child: const Text('OK'),
+    Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.all(24.r),
+        decoration: BoxDecoration(
+          color: Get.isDarkMode
+              ? AppColors.darkSurface
+              : AppColors.lightSurface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40.w,
+              height: 4.h,
+              margin: EdgeInsets.only(bottom: 24.h),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            Icon(
+              passed ? Icons.emoji_events_rounded : Icons.info_outline_rounded,
+              size: 64.sp,
+              color: passed ? Colors.amber : Colors.blue,
+            ),
+            SizedBox(height: 24.h),
+            Text(
+              passed ? 'Congratulations!' : 'Try Again',
+              style: GoogleFonts.outfit(
+                fontSize: 24.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              passed
+                  ? 'You passed the quiz! You\'ve earned XP and unlocked the next topic.'
+                  : 'You scored ${((quizScore.value / quizQuestions.length) * 100).toInt()}%. You need at least 50% to pass this module.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 16.sp, color: Colors.grey),
+            ),
+            SizedBox(height: 32.h),
+            SizedBox(
+              width: double.infinity,
+              height: 56.h,
+              child: ElevatedButton(
+                onPressed: () {
+                  Get.back(); // Close bottom sheet
+                  if (passed) {
+                    Get.back(); // Exit learning view
+                  } else {
+                    isQuizMode.value = false; // Retry learning
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: passed
+                      ? AppColors.secondary
+                      : AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                ),
+                child: Text(
+                  passed ? 'Continue' : 'Review Topic',
+                  style: GoogleFonts.inter(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+          ],
+        ),
       ),
-      barrierDismissible: false,
+      isDismissible: false,
+      enableDrag: false,
     );
   }
 }

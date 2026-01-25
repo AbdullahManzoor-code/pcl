@@ -60,7 +60,6 @@ class CourseRepositoryImpl implements CourseRepository {
     return courseList;
   }
 
-  @override
   Quiz? getDiagnosticQuizForCourse(String courseId) {
     final data = _apiService.getDiagnosticQuizForCourse(courseId);
     if (data != null) {

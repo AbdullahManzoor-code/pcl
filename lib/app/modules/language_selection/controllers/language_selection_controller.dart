@@ -26,6 +26,6 @@ class LanguageSelectionController extends GetxController {
 
   void selectLevel(String level) {
     selectedLevel.value = level;
-    Get.offAllNamed(Routes.ASSESSMENT);
+    Get.offAllNamed(Routes.assessment);
   }
 }

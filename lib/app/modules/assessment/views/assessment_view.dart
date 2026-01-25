@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
+import 'package:get/get_state_manager/src/simple/get_view.dart';
+
 import '../controllers/assessment_controller.dart';
+import '../../../core/utils/haptic_utils.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AssessmentView extends GetView<AssessmentController> {
   const AssessmentView({super.key});
@@ -14,36 +19,50 @@ class AssessmentView extends GetView<AssessmentController> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(16.r),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Progress Bar
               Obx(
-                () => LinearProgressIndicator(
-                  value:
-                      (controller.currentQuestionIndex.value + 1) /
-                      controller.questions.length,
-                  backgroundColor: Colors.grey[200],
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Theme.of(context).primaryColor,
+                () => ClipRRect(
+                  borderRadius: BorderRadius.circular(4.r),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(
+                      begin: 0.0,
+                      end:
+                          (controller.currentQuestionIndex.value + 1) /
+                          controller.questions.length,
+                    ),
+                    duration: const Duration(milliseconds: 1000),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, child) {
+                      return LinearProgressIndicator(
+                        value: value,
+                        backgroundColor: Colors.grey[200],
+                        minHeight: 8.h,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).primaryColor,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
 
               // Question Counter
               Obx(
                 () => Text(
                   'Question ${controller.currentQuestionIndex.value + 1}/${controller.questions.length}',
-                  style: TextStyle(
+                  style: GoogleFonts.inter(
                     color: Theme.of(context).primaryColor,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 16.sp,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
 
               // Question Text
               Obx(
@@ -52,13 +71,14 @@ class AssessmentView extends GetView<AssessmentController> {
                           .currentQuestionIndex
                           .value]['question']
                       as String,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  style: GoogleFonts.inter(
                     fontWeight: FontWeight.bold,
-                    fontSize: 22,
+                    fontSize: 22.sp,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
 
               // Options
               Expanded(
@@ -70,18 +90,21 @@ class AssessmentView extends GetView<AssessmentController> {
                   final selectedAnswer = controller.answers[currentQIndex];
 
                   return ListView.separated(
+                    physics: const BouncingScrollPhysics(),
                     itemCount: options.length,
-                    separatorBuilder: (ctx, i) => const SizedBox(height: 16),
+                    separatorBuilder: (ctx, i) => SizedBox(height: 16.h),
                     itemBuilder: (context, index) {
                       final isSelected = selectedAnswer == index;
                       return InkWell(
-                        onTap: () =>
-                            controller.selectAnswer(currentQIndex, index),
-                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          HapticUtils.selectionClick();
+                          controller.selectAnswer(currentQIndex, index);
+                        },
+                        borderRadius: BorderRadius.circular(12.r),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 16,
-                            horizontal: 20,
+                          padding: EdgeInsets.symmetric(
+                            vertical: 16.h,
+                            horizontal: 20.w,
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
@@ -89,45 +112,45 @@ class AssessmentView extends GetView<AssessmentController> {
                                     context,
                                   ).primaryColor.withOpacity(0.1)
                                 : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(12.r),
                             border: Border.all(
                               color: isSelected
                                   ? Theme.of(context).primaryColor
                                   : Colors.grey.shade300,
-                              width: 2,
+                              width: 2.w,
                             ),
                           ),
                           child: Row(
                             children: [
                               Container(
-                                width: 24,
-                                height: 24,
+                                width: 24.w,
+                                height: 24.w,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: isSelected
                                         ? Theme.of(context).primaryColor
                                         : Colors.grey.shade400,
-                                    width: 2,
+                                    width: 2.w,
                                   ),
                                   color: isSelected
                                       ? Theme.of(context).primaryColor
                                       : null,
                                 ),
                                 child: isSelected
-                                    ? const Icon(
+                                    ? Icon(
                                         Icons.check,
-                                        size: 16,
+                                        size: 16.sp,
                                         color: Colors.white,
                                       )
                                     : null,
                               ),
-                              const SizedBox(width: 16),
+                              SizedBox(width: 16.w),
                               Expanded(
                                 child: Text(
                                   options[index],
-                                  style: TextStyle(
-                                    fontSize: 16,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 16.sp,
                                     fontWeight: isSelected
                                         ? FontWeight.bold
                                         : FontWeight.normal,
@@ -153,8 +176,14 @@ class AssessmentView extends GetView<AssessmentController> {
                   Obx(
                     () => controller.currentQuestionIndex.value > 0
                         ? TextButton(
-                            onPressed: controller.previousQuestion,
-                            child: const Text('Previous'),
+                            onPressed: () {
+                              HapticUtils.lightImpact();
+                              controller.previousQuestion();
+                            },
+                            child: Text(
+                              'Previous',
+                              style: GoogleFonts.inter(fontSize: 14.sp),
+                            ),
                           )
                         : const SizedBox.shrink(),
                   ),
@@ -164,12 +193,18 @@ class AssessmentView extends GetView<AssessmentController> {
                           controller.answers.containsKey(
                             controller.currentQuestionIndex.value,
                           )
-                          ? controller.nextQuestion
-                          : null, // Disable if not answered? Or allow skip? User functional flow says "submit test", implies mandatory? Let's assume selection required.
+                          ? () {
+                              HapticUtils.mediumImpact();
+                              controller.nextQuestion();
+                            }
+                          : null,
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 12,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 32.w,
+                          vertical: 12.h,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
                         ),
                       ),
                       child: Text(
@@ -177,6 +212,10 @@ class AssessmentView extends GetView<AssessmentController> {
                                 controller.questions.length - 1
                             ? 'Submit'
                             : 'Next',
+                        style: GoogleFonts.inter(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),

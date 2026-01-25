@@ -1,117 +1,111 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../app/routes/app_pages.dart';
-import '../../../data/repositories/course_repository.dart';
-import '../../../data/services/mock_api_service.dart';
+import '../../../data/models/quiz_model.dart';
+import '../../../data/models/test_result_model.dart';
 
 class ResultsController extends GetxController {
-  late final CourseRepository _courseRepository;
-
   final score = 0.obs;
   final totalQuestions = 0.obs;
   final correctAnswers = 0.obs;
   final incorrectAnswers = 0.obs;
+  final percentage = 0.0.obs;
+  final grade = 'F'.obs;
+  final timeTaken = '---'.obs;
 
   final courseId = ''.obs;
+  final conceptName = ''.obs;
   final userRating = 5.0.obs;
   final userComment = ''.obs;
   final isReviewSubmitted = false.obs;
 
-  // AI / ML Results
-  final xpEarned = 0.obs;
-  final mlRecommendation = ''.obs;
-  final mlNextAction = ''.obs;
-  final mlConfidence = 0.0.obs;
-  final strength = ''.obs;
+  // Data passed from Quiz
+  final questions = <Question>[].obs;
+  final answers = <int, dynamic>{}.obs;
+
+  // Analysis Data
+  final strongTopics = <Map<String, dynamic>>[].obs;
+  final weakTopics = <Map<String, dynamic>>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    _courseRepository = CourseRepositoryImpl(Get.find<MockApiService>());
 
-    if (Get.arguments != null) {
-      final args = Get.arguments as Map<String, dynamic>;
-      totalQuestions.value = args['total'] ?? 0;
-      correctAnswers.value = args['correct'] ?? 0;
-      incorrectAnswers.value = args['incorrect'] ?? 0;
-      courseId.value = args['courseId'] ?? '';
+    if (Get.arguments != null && Get.arguments is TestResult) {
+      final result = Get.arguments as TestResult;
 
-      if (totalQuestions.value > 0) {
-        score.value =
-            args['score'] ??
-            ((correctAnswers.value / totalQuestions.value) * 100).toInt();
-      }
+      // Basic Stats
+      score.value = result.score;
+      totalQuestions.value = result.totalQuestions;
+      courseId.value = result.conceptId;
+      conceptName.value = result.conceptName;
+      percentage.value = result.accuracy.toDouble();
 
-      // Extract ML Data
-      xpEarned.value = args['xp_earned'] ?? 0;
-      if (args['ml_analysis'] != null) {
-        final ml = args['ml_analysis'] as Map<String, dynamic>;
-        mlRecommendation.value = ml['recommendation'] ?? '';
-        mlNextAction.value = ml['next_action'] ?? '';
-        mlConfidence.value = (ml['confidence_score'] ?? 0.0).toDouble();
-        strength.value = ml['strength'] ?? '';
-      }
+      questions.value = result.questions;
+      answers.value = result.answers;
+
+      // Derived Stats
+      correctAnswers.value = score.value;
+      incorrectAnswers.value = totalQuestions.value - correctAnswers.value;
+      grade.value = _calculateGrade(percentage.value);
+
+      // Mock Analysis Generation
+      _generateMockAnalysis();
     }
+  }
+
+  String _calculateGrade(double p) {
+    if (p >= 90) return 'A+';
+    if (p >= 80) return 'A';
+    if (p >= 70) return 'B';
+    if (p >= 60) return 'C';
+    return 'D';
+  }
+
+  void _generateMockAnalysis() {
+    // In a real app, we'd analyze which topics the correct/incorrect questions belong to.
+    // For this prototype, we'll generate static data to match the UI.
+    strongTopics.value = [
+      {'name': 'Variables & Data Types', 'accuracy': 95},
+      {'name': 'Control Flow', 'accuracy': 90},
+    ];
+    weakTopics.value = [
+      {'name': 'Functions', 'accuracy': 65},
+      {'name': 'Object-Oriented Programming', 'accuracy': 55},
+    ];
   }
 
   void submitReview() {
     if (courseId.value.isEmpty) return;
 
-    // Validation: Require a comment if rating is <= 3
+    // Validation
     if (userRating.value <= 3 && userComment.value.trim().isEmpty) {
       Get.snackbar(
         'Attention',
         'Please let us know how we can improve in your comments.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.orange.shade100,
+        colorText: Colors.orange.shade900,
       );
       return;
     }
 
-    try {
-      final review = {
-        'id': 'r${DateTime.now().millisecondsSinceEpoch}',
-        'user_name': 'Mian',
-        'user_avatar': '',
-        'rating': userRating.value,
-        'comment': userComment.value.isEmpty
-            ? 'Great lesson!'
-            : userComment.value.trim(),
-        'date': DateTime.now().toIso8601String(),
-      };
-
-      _courseRepository.addReview(courseId.value, review);
-      isReviewSubmitted.value = true;
-
-      Get.snackbar(
-        'Success',
-        'Thank you for your feedback!',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.primaryColor.withOpacity(0.1),
-      );
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to submit review. Please try again.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.colorScheme.errorContainer,
-      );
-    }
+    // Process
+    isReviewSubmitted.value = true;
+    Get.snackbar(
+      'Success',
+      'Thank you for your feedback!',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green.shade100,
+      colorText: Colors.green.shade900,
+    );
   }
 
-  void navigateToNextAction() {
-    if (courseId.value.isEmpty) return;
-
-    // In this mock flow, we navigate back to Course Details to continue
-    // Better experience: go to the specific topic, but for now CourseDetails is the hub.
-    Get.snackbar(
-      'Continuing Path',
-      'Heading back to the course to continue...',
-    );
-    Get.offNamed(Routes.COURSE_DETAILS, arguments: courseId.value);
+  void handlePracticeAgain() {
+    Get.offNamed(Routes.quiz, arguments: courseId.value);
   }
 
   void goToDashboard() {
-    Get.offAllNamed(Routes.MAIN);
+    Get.offAllNamed(Routes.main);
   }
 }

@@ -1,63 +1,16 @@
-# Programming Learning App
+# pcl
 
-A modern Flutter application for interactive programming learning, built with **GetX Clean Architecture**.
+A new Flutter project.
 
-## 🚀 Features
+## Getting Started
 
-### 1️⃣ Authentication
+This project is a starting point for a Flutter application.
 
-- **Login/Register**: Secure forms with validation.
-- **Social Login**: Google and GitHub integration (Mock).
-- **State Management**: `AuthController` handles efficient state changes.
+A few resources to get you started if this is your first Flutter project:
 
-### 2️⃣ Home Hub (Dashboard)
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-- **Stats Overview**: Track consecutive study days, hours, and courses.
-- **Course Lists**: Separate sections for "Current Study" and "Recommended".
-- **Daily Progress**: Visual progress bar for daily goals.
-
-### 3️⃣ Learning Flow
-
-- **Course Details**: View syllabus/topics for a specific course.
-- **Topic Locking**: Topics unlock based on previous quiz scores (Server Logic).
-- **Learning View**: Educational content and interactive quizzes.
-
-### 4️⃣ Profile & Settings
-
-- **Profile**: View user avatar and details.
-- **Settings**: Placeholder for privacy and notification settings.
-
-### 5️⃣ Mock API
-
-- **Data Service**: Centralized `MockApiService` simulates backend responses for users, courses, and evaluation.
-
-## 🏗️ Architecture
-
-The project follows **GetX Clean Architecture**:
-
-```
-lib/
-├── app/
-│   ├── data/                 # Data Layer (Services, Models)
-│   ├── modules/              # Feature modules (View, Controller, Binding)
-│   │   ├── auth/
-│   │   ├── dashboard/
-│   │   ├── course_details/
-│   │   ├── learning/
-│   │   ├── profile/
-│   │   └── ...
-│   ├── routes/               # Navigation management
-│   └── core/                 # Shared resources (Theme, Utils)
-└── main.dart                 # App Entry Point
-```
-
-## 🛠️ Tech Stack
-
-- **Flutter**: UI Framework
-- **GetX**: State Management, DI, Navigation
-- **Google Fonts**: Typography
-
-## 📦 How to Run
-
-1. `flutter pub get`
-2. `flutter run`
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.

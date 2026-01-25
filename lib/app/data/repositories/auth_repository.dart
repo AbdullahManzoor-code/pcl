@@ -1,4 +1,3 @@
-import 'package:get/get.dart';
 import '../models/user_model.dart';
 import '../services/mock_api_service.dart';
 
@@ -42,7 +41,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<User?> getCurrentUser() async {
     try {
-      final userStats = _apiService.getUserStats();
+      _apiService.getUserStats();
       // Since mock service doesn't easily expose full user on refresh without login,
       // we'll mock a "check session" by calling login silently or just returning null
       // In a real app, we'd check token.

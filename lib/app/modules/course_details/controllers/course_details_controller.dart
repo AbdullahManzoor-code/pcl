@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 import '../../../data/models/course_model.dart';
-import '../../../data/models/sub_topic_model.dart';
+// import '../../../data/models/sub_topic_model.dart'; // Removing to avoid conflict if Topic model includes SubTopic
 import '../../../data/models/topic_model.dart';
 import '../../../data/repositories/course_repository.dart';
 import '../../../routes/app_pages.dart';
@@ -9,13 +9,14 @@ class CourseDetailsController extends GetxController {
   final course = Rxn<Course>(); // Use Rxn for nullable or just late
   final topics = <Topic>[].obs;
   final isLoading = true.obs;
+  final RxnString selectedTopicId = RxnString();
+  final numQuestions = 10.obs;
 
-  late final CourseRepository _courseRepository;
+  final CourseRepository _courseRepository = Get.find<CourseRepository>();
 
   @override
   void onInit() {
     super.onInit();
-    _courseRepository = Get.find<CourseRepository>();
     final args = Get.arguments;
     if (args != null) {
       if (args is Course) {
@@ -80,6 +81,25 @@ class CourseDetailsController extends GetxController {
     }
   }
 
+  void startTest(Topic topic, int numQuestions) {
+    Get.toNamed(
+      Routes.quiz,
+      arguments: {
+        'courseId': course.value?.id,
+        'topicId': topic.id,
+        'numQuestions': numQuestions,
+        'isDiagnostic': false,
+      },
+    );
+  }
+
+  void handleDemoTest() {
+    Get.toNamed(
+      Routes.quiz,
+      arguments: {'courseId': course.value?.id, 'isDiagnostic': true},
+    );
+  }
+
   void openSubTopic(SubTopic subTopic) {
     if (subTopic.isLocked) {
       Get.snackbar(
@@ -91,9 +111,8 @@ class CourseDetailsController extends GetxController {
     }
 
     if (subTopic.type == 'quiz') {
-      Get.toNamed(Routes.QUIZ, arguments: subTopic);
+      Get.toNamed(Routes.quiz, arguments: subTopic);
     } else {
-      // Get.toNamed(Routes.PREFIX + Routes.TOPIC_DETAILS, arguments: subTopic);
       Get.snackbar('Lesson', 'Opening Lesson: ${subTopic.title}');
     }
   }
