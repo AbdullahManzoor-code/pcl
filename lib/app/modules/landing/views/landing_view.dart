@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/landing_controller.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/haptic_utils.dart';
 
 class LandingView extends GetView<LandingController> {
@@ -15,13 +16,9 @@ class LandingView extends GetView<LandingController> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
-                : [Colors.white, const Color(0xFFF0F9FF)],
-          ),
+          gradient: isDark
+              ? AppColors.surfaceGradientDark
+              : AppColors.surfaceGradientLight,
         ),
         child: Column(
           children: [
@@ -31,9 +28,9 @@ class LandingView extends GetView<LandingController> {
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   children: [
-                    _buildHeroSection(context),
-                    _buildFeaturesSection(context),
-                    _buildFooter(context),
+                    _buildHeroSection(context, isDark),
+                    _buildFeaturesSection(context, isDark),
+                    _buildFooter(context, isDark),
                   ],
                 ),
               ),
@@ -45,29 +42,40 @@ class LandingView extends GetView<LandingController> {
   }
 
   Widget _buildNavbar(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.8),
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.1),
-          ),
-        ),
+        color: isDark
+            ? AppColors.darkBg.withOpacity(0.8)
+            : Colors.white.withOpacity(0.8),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isMobile = constraints.maxWidth < 600;
           return Row(
             children: [
-              Icon(Icons.code, color: const Color(0xFF2563EB), size: 32.sp),
-              SizedBox(width: 8.w),
+              Container(
+                padding: EdgeInsets.all(8.r),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Icon(
+                  Icons.code_rounded,
+                  color: AppColors.primary,
+                  size: 28.sp,
+                ),
+              ),
+              SizedBox(width: 12.w),
               if (!isMobile)
                 Text(
                   'LearnRL',
-                  style: GoogleFonts.inter(
-                    fontSize: 24.sp,
+                  style: GoogleFonts.outfit(
+                    fontSize: 22.sp,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
+                    color: isDark ? Colors.white : AppColors.darkBg,
                   ),
                 ),
               const Spacer(),
@@ -75,40 +83,44 @@ class LandingView extends GetView<LandingController> {
                 TextButton(
                   onPressed: () {
                     HapticUtils.lightImpact();
-                    Get.toNamed('/auth');
+                    controller.navigateToLogin();
                   },
                   child: Text(
                     'Sign In',
                     style: GoogleFonts.inter(
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      color: isDark ? Colors.white70 : AppColors.darkBg,
                       fontSize: 14.sp,
                     ),
                   ),
                 ),
-                SizedBox(width: 16.w),
+                SizedBox(width: 12.w),
               ],
-              ElevatedButton(
-                onPressed: () {
-                  HapticUtils.mediumImpact();
-                  Get.toNamed('/register');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                child: ElevatedButton(
+                  onPressed: () {
+                    HapticUtils.mediumImpact();
+                    controller.navigateToRegister();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 16.w : 28.w,
+                      vertical: 14.h,
+                    ),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 16.w : 24.w,
-                    vertical: 12.h,
-                  ),
-                ),
-                child: Text(
-                  isMobile ? 'Get Started' : 'Get Started',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp,
+                  child: Text(
+                    'Get Started',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14.sp,
+                    ),
                   ),
                 ),
               ),
@@ -119,132 +131,150 @@ class LandingView extends GetView<LandingController> {
     );
   }
 
-  Widget _buildHeroSection(BuildContext context) {
+  Widget _buildHeroSection(BuildContext context, bool isDark) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 80.h, horizontal: 24.w),
+      padding: EdgeInsets.symmetric(vertical: 100.h, horizontal: 24.w),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
             decoration: BoxDecoration(
-              color: const Color(0xFF2563EB).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(
-                color: const Color(0xFF2563EB).withOpacity(0.2),
-              ),
+              color: AppColors.primary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(30.r),
+              border: Border.all(color: AppColors.primary.withOpacity(0.15)),
             ),
-            child: Text(
-              '✨ AI-Powered Learning Platform',
-              style: GoogleFonts.inter(
-                color: const Color(0xFF2563EB),
-                fontWeight: FontWeight.w600,
-                fontSize: 14.sp,
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              colors: [Color(0xFF1E293B), Color(0xFF3B82F6)],
-            ).createShader(bounds),
-            child: Text(
-              'Master Programming\nwith AI Guidance',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                fontSize: 48.sp,
-                fontWeight: FontWeight.w900,
-                height: 1.1,
-                color: Colors.white,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.auto_awesome, color: AppColors.primary, size: 16.sp),
+                SizedBox(width: 8.w),
+                Text(
+                  'AI-POWERED LEARNING',
+                  style: GoogleFonts.inter(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11.sp,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 40.h),
           Text(
-            'Personalized learning paths, interactive quizzes, and intelligent feedback\nto help you learn faster and more effectively.',
+            'Master Programming\nwith Intelligence',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(
+              fontSize: 42.sp,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+              color: isDark ? Colors.white : AppColors.darkBg,
+              letterSpacing: -1,
+            ),
+          ),
+          SizedBox(height: 24.h),
+          Text(
+            'Experience a personalized learning path that adapts\nto your unique speed, goals, and style.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
-              fontSize: 18.sp,
-              color: Colors.grey[600],
-              height: 1.5,
+              fontSize: 16.sp,
+              color: isDark ? Colors.white70 : Colors.black54,
+              height: 1.6,
             ),
           ),
-          const SizedBox(height: 48),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: () {
-                  HapticUtils.mediumImpact();
-                  Get.toNamed('/register');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 32.w,
-                    vertical: 20.h,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Start Learning Now',
-                      style: GoogleFonts.inter(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 20.sp),
-                  ],
+          SizedBox(height: 56.h),
+          SizedBox(
+            width: 260.w,
+            height: 64.h,
+            child: ElevatedButton(
+              onPressed: () {
+                HapticUtils.mediumImpact();
+                controller.navigateToRegister();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 4,
+                shadowColor: AppColors.primary.withOpacity(0.2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.r),
                 ),
               ),
-            ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Start Free Journey',
+                    style: GoogleFonts.inter(
+                      fontSize: 17.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Icon(Icons.arrow_forward_rounded, size: 22.sp),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFeaturesSection(BuildContext context) {
+  Widget _buildFeaturesSection(BuildContext context, bool isDark) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 80.h, horizontal: 24.w),
+      padding: EdgeInsets.symmetric(vertical: 60.h, horizontal: 24.w),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.02)
+            : Colors.black.withOpacity(0.02),
+      ),
       child: Column(
         children: [
           Text(
-            'Why Choose LearnRL?',
-            style: GoogleFonts.inter(
-              fontSize: 32.sp,
+            'Future-Proof Learning',
+            style: GoogleFonts.outfit(
+              fontSize: 30.sp,
               fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.darkBg,
             ),
           ),
-          const SizedBox(height: 64),
+          SizedBox(height: 12.h),
+          Text(
+            'Everything you need to master modern technology.',
+            style: GoogleFonts.inter(
+              fontSize: 15.sp,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+          ),
+          SizedBox(height: 64.h),
           Wrap(
-            spacing: 32.w,
-            runSpacing: 32.h,
+            spacing: 24.w,
+            runSpacing: 24.h,
             alignment: WrapAlignment.center,
             children: [
               _buildFeatureCard(
-                icon: Icons.auto_awesome,
-                title: 'AI-Driven Paths',
-                description:
-                    'Customized curriculum based on your goals and pace.',
+                context: context,
+                isDark: isDark,
+                icon: Icons.rocket_launch_rounded,
+                title: 'AI Paths',
+                description: 'Custom curriculum that evolves with your skills.',
                 color: const Color(0xFF3B82F6),
               ),
               _buildFeatureCard(
-                icon: Icons.psychology,
-                title: 'Smart Assessment',
-                description:
-                    'Adaptive quizzes that evolve with your knowledge.',
+                context: context,
+                isDark: isDark,
+                icon: Icons.auto_awesome_motion_rounded,
+                title: 'Adaptive Practice',
+                description: 'Smart challenges that target your learning gaps.',
                 color: const Color(0xFF10B981),
               ),
               _buildFeatureCard(
-                icon: Icons.timeline,
-                title: 'Progress Tracking',
-                description: 'Visual analytics to monitor your growth journey.',
+                context: context,
+                isDark: isDark,
+                icon: Icons.analytics_rounded,
+                title: 'Data Insights',
+                description: 'Visual breakdowns of your mastery journey.',
                 color: const Color(0xFF8B5CF6),
               ),
             ],
@@ -255,22 +285,29 @@ class LandingView extends GetView<LandingController> {
   }
 
   Widget _buildFeatureCard({
+    required BuildContext context,
+    required bool isDark,
     required IconData icon,
     required String title,
     required String description,
     required Color color,
   }) {
     return Container(
-      width: 300,
-      padding: const EdgeInsets.all(32),
+      width: 320.w,
+      padding: EdgeInsets.all(32.r),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(32.r),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.black.withOpacity(0.05),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20.r,
-            offset: Offset(0, 10.h),
+            color: color.withOpacity(0.05),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -283,15 +320,15 @@ class LandingView extends GetView<LandingController> {
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16.r),
             ),
-            child: Icon(icon, color: color, size: 32.sp),
+            child: Icon(icon, color: color, size: 28.sp),
           ),
           SizedBox(height: 24.h),
           Text(
             title,
-            style: GoogleFonts.inter(
-              fontSize: 20.sp,
+            style: GoogleFonts.outfit(
+              fontSize: 22.sp,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF1E293B),
+              color: isDark ? Colors.white : AppColors.darkBg,
             ),
           ),
           SizedBox(height: 12.h),
@@ -299,8 +336,11 @@ class LandingView extends GetView<LandingController> {
             description,
             style: GoogleFonts.inter(
               fontSize: 16.sp,
-              color: const Color(0xFF64748B),
-              height: 1.5,
+              color: isDark
+                  ? Colors.white.withOpacity(0.7)
+                  : Colors.black.withOpacity(0.5),
+              height: 1.6,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -308,16 +348,16 @@ class LandingView extends GetView<LandingController> {
     );
   }
 
-  Widget _buildFooter(BuildContext context) {
+  Widget _buildFooter(BuildContext context, bool isDark) {
     return Container(
       padding: EdgeInsets.all(48.r),
-      color: const Color(0xFF0F172A),
+      color: AppColors.darkBg,
       child: Column(
         children: [
-          Icon(Icons.code, color: Colors.white.withOpacity(0.5), size: 48.sp),
+          Icon(Icons.code, color: Colors.white.withOpacity(0.3), size: 48.sp),
           SizedBox(height: 24.h),
           Text(
-            '© 2024 LearnRL. All rights reserved.',
+            '© 2026 LearnRL. All rights reserved.',
             style: GoogleFonts.inter(color: Colors.white54, fontSize: 12.sp),
           ),
         ],

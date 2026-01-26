@@ -31,46 +31,16 @@ class ResultsView extends GetView<ResultsController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Header / Trophy
+                // Score Ring Header
                 const SizedBox(height: 16),
-                Container(
-                  width: 96.w,
-                  height: 96.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: AppColors.successGradient,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.secondary.withOpacity(0.3),
-                        blurRadius: 20.r,
-                        offset: Offset(0, 10.h),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.emoji_events_rounded,
-                      size: 48.sp,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 24.h),
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [
-                      AppColors.emerald600,
-                      AppColors.teal600,
-                      AppColors.emerald600,
-                    ],
-                  ).createShader(bounds),
-                  child: Text(
-                    'Test Completed!',
-                    style: GoogleFonts.inter(
-                      fontSize: 32.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                _buildScoreRing(context, controller.percentage.value / 100),
+                SizedBox(height: 32.h),
+                Text(
+                  'Test Completed!',
+                  style: GoogleFonts.outfit(
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.darkBg,
                   ),
                 ),
                 SizedBox(height: 8.h),
@@ -542,24 +512,79 @@ class ResultsView extends GetView<ResultsController> {
     );
   }
 
+  Widget _buildScoreRing(BuildContext context, double percentage) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 180.w,
+          height: 180.w,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: percentage),
+            duration: const Duration(seconds: 2),
+            curve: Curves.easeOutCirc,
+            builder: (context, value, child) {
+              return CircularProgressIndicator(
+                value: value,
+                strokeWidth: 12.w,
+                backgroundColor: isDark
+                    ? AppColors.darkSurface
+                    : AppColors.lightBorder,
+                valueColor: AlwaysStoppedAnimation(
+                  percentage > 0.7
+                      ? AppColors.success
+                      : (percentage > 0.4 ? AppColors.accent : AppColors.error),
+                ),
+              );
+            },
+          ),
+        ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${(percentage * 100).toInt()}%',
+              style: GoogleFonts.outfit(
+                fontSize: 48.sp,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : AppColors.darkBg,
+              ),
+            ),
+            Text(
+              'CORRECT',
+              style: GoogleFonts.inter(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+                letterSpacing: 2,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildStatCard(
     BuildContext context, {
     required String value,
     required String label,
     required List<Color> colors,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
+      padding: EdgeInsets.symmetric(vertical: 16.h),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
-        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: colors[0].withOpacity(0.3),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -569,17 +594,19 @@ class ResultsView extends GetView<ResultsController> {
         children: [
           Text(
             value,
-            style: GoogleFonts.inter(
-              fontSize: 32,
+            style: GoogleFonts.outfit(
+              fontSize: 22.sp,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: isDark ? Colors.white : AppColors.darkBg,
             ),
           ),
+          SizedBox(height: 4.h),
           Text(
             label,
             style: GoogleFonts.inter(
-              fontSize: 14,
-              color: Colors.white.withOpacity(0.3),
+              fontSize: 12.sp,
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -639,14 +666,43 @@ class ResultsView extends GetView<ResultsController> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            item['name'],
-                            style: GoogleFonts.inter(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w500,
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.lightTextSecondary,
+                          Expanded(
+                            child: InkWell(
+                              onTap: () =>
+                                  controller.practiceTopic(item['name']),
+                              borderRadius: BorderRadius.circular(4.r),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      item['name'],
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w500,
+                                        color: isDark
+                                            ? AppColors.darkTextSecondary
+                                            : AppColors.lightTextSecondary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  Text(
+                                    'Retake',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 14.sp,
+                                    color: AppColors.primary,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           Text(

@@ -37,6 +37,19 @@ class AppColors {
   static const Color pink600 = Color(0xFFDB2777);
   static const Color success = secondary;
 
+  // Tutorial/Onboarding Colors
+  static const Color tutorial1 = Color(0xFF6366F1);
+  static const Color tutorial2 = Color(0xFF8B5CF6);
+  static const Color tutorial3 = Color(0xFFEC4899);
+
+  // Language Specific Colors
+  static const Color python = Color(0xFF3B82F6);
+  static const Color javascript = Color(0xFFEAB308);
+  static const Color java = Color(0xFFEF4444);
+  static const Color cpp = Color(0xFFA855F7);
+  static const Color go = Color(0xFF06B6D4);
+  static const Color typescript = Color(0xFF60A5FA);
+
   // Analysis Section Colors
   static const Color successBgLight = Color(0xFFDCFCE7);
   static const Color successBgDark = Color(0xFF14532D);
@@ -49,7 +62,7 @@ class AppColors {
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primary, Color(0xFF2563EB)],
+    colors: [primary, violet600],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

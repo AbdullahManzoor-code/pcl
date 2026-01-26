@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
-import 'package:get/get_state_manager/src/simple/get_view.dart';
-
+import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/next_components.dart';
 import '../controllers/assessment_controller.dart';
 import '../../../core/utils/haptic_utils.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AssessmentView extends GetView<AssessmentController> {
   const AssessmentView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Initial Assessment'),
@@ -39,10 +40,12 @@ class AssessmentView extends GetView<AssessmentController> {
                     builder: (context, value, child) {
                       return LinearProgressIndicator(
                         value: value,
-                        backgroundColor: Colors.grey[200],
+                        backgroundColor: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightDivider,
                         minHeight: 8.h,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Theme.of(context).primaryColor,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
                         ),
                       );
                     },
@@ -56,7 +59,7 @@ class AssessmentView extends GetView<AssessmentController> {
                 () => Text(
                   'Question ${controller.currentQuestionIndex.value + 1}/${controller.questions.length}',
                   style: GoogleFonts.inter(
-                    color: Theme.of(context).primaryColor,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.bold,
                     fontSize: 16.sp,
                   ),
@@ -73,9 +76,12 @@ class AssessmentView extends GetView<AssessmentController> {
                       as String,
                   style: GoogleFonts.inter(
                     fontWeight: FontWeight.bold,
-                    fontSize: 22.sp,
+                    fontSize:
+                        20.sp, // Reduced from 22 to be consistent with average
                     color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               SizedBox(height: 32.h),
@@ -108,15 +114,17 @@ class AssessmentView extends GetView<AssessmentController> {
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? Theme.of(
-                                    context,
-                                  ).primaryColor.withOpacity(0.1)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(12.r),
+                                ? AppColors.primary.withOpacity(0.05)
+                                : (isDark
+                                      ? AppColors.darkSurface
+                                      : Colors.white),
+                            borderRadius: BorderRadius.circular(16.r),
                             border: Border.all(
                               color: isSelected
-                                  ? Theme.of(context).primaryColor
-                                  : Colors.grey.shade300,
+                                  ? AppColors.primary
+                                  : (isDark
+                                        ? AppColors.darkBorder
+                                        : AppColors.lightBorder),
                               width: 2.w,
                             ),
                           ),
@@ -129,13 +137,13 @@ class AssessmentView extends GetView<AssessmentController> {
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: isSelected
-                                        ? Theme.of(context).primaryColor
-                                        : Colors.grey.shade400,
+                                        ? AppColors.primary
+                                        : (isDark
+                                              ? Colors.white24
+                                              : Colors.black12),
                                     width: 2.w,
                                   ),
-                                  color: isSelected
-                                      ? Theme.of(context).primaryColor
-                                      : null,
+                                  color: isSelected ? AppColors.primary : null,
                                 ),
                                 child: isSelected
                                     ? Icon(
@@ -188,34 +196,23 @@ class AssessmentView extends GetView<AssessmentController> {
                         : const SizedBox.shrink(),
                   ),
                   Obx(
-                    () => ElevatedButton(
-                      onPressed:
-                          controller.answers.containsKey(
-                            controller.currentQuestionIndex.value,
-                          )
-                          ? () {
-                              HapticUtils.mediumImpact();
-                              controller.nextQuestion();
-                            }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 32.w,
-                          vertical: 12.h,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                      ),
-                      child: Text(
-                        controller.currentQuestionIndex.value ==
+                    () => SizedBox(
+                      width: 140.w,
+                      child: NextButton(
+                        text:
+                            controller.currentQuestionIndex.value ==
                                 controller.questions.length - 1
-                            ? 'Submit'
+                            ? 'Finish'
                             : 'Next',
-                        style: GoogleFonts.inter(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        onPressed:
+                            controller.answers.containsKey(
+                              controller.currentQuestionIndex.value,
+                            )
+                            ? () {
+                                HapticUtils.mediumImpact();
+                                controller.nextQuestion();
+                              }
+                            : null,
                       ),
                     ),
                   ),

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../../app/routes/app_pages.dart';
 import '../../../data/models/quiz_model.dart';
 import '../../../data/models/test_result_model.dart';
+import '../../../core/utils/haptic_utils.dart';
 
 class ResultsController extends GetxController {
   final score = 0.obs;
@@ -103,6 +104,12 @@ class ResultsController extends GetxController {
 
   void handlePracticeAgain() {
     Get.offNamed(Routes.quiz, arguments: courseId.value);
+  }
+
+  void practiceTopic(String topicName) {
+    HapticUtils.mediumImpact();
+    // Navigate to PracticeView with the specific topic pre-selected
+    Get.toNamed(Routes.practice, arguments: {'concept': topicName});
   }
 
   void goToDashboard() {

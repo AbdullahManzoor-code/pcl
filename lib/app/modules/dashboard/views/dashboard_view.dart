@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'dart:io';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/animated_widgets.dart';
 import '../../../core/widgets/special_cards.dart';
-import '../../../core/widgets/enhanced_navigation.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../controllers/dashboard_controller.dart';
 import '../../../data/models/course_model.dart';
-import '../../../routes/app_pages.dart';
+import '../../../core/widgets/heatmap.dart';
 
 class DashboardView extends GetView<DashboardController> {
   const DashboardView({super.key});
@@ -20,127 +21,389 @@ class DashboardView extends GetView<DashboardController> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async => controller.fetchData(),
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-          color: AppColors.primary,
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 20.h),
-                  _buildHeader(context),
-                  SizedBox(height: 24.h),
-                  _buildStreakCard(context),
-                  SizedBox(height: 32.h),
-                  _buildSectionHeader(context, 'Continue Learning', () {
-                    Get.toNamed(Routes.myCourses);
-                  }),
-                  SizedBox(height: 16.h),
-                  _buildContinueLearning(context),
-                  SizedBox(height: 32.h),
-                  _buildSectionHeader(context, 'Recommended for You', () {
-                    Get.toNamed(Routes.courses);
-                  }),
-                  SizedBox(height: 16.h),
-                  _buildRecommendations(context),
-                  SizedBox(height: 32.h),
-                  _buildStatsSection(context),
-                  SizedBox(height: 100.h),
+      body: NestedScrollView(
+        floatHeaderSlivers: true,
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverOverlapAbsorber(
+            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            sliver: SliverAppBar(
+              automaticallyImplyLeading: true,
+              titleSpacing: 0,
+              pinned: true,
+              floating: false,
+              backgroundColor: AppColors.primary,
+              elevation: 10,
+              scrolledUnderElevation: 0,
+              toolbarHeight: 50.h,
+              forceElevated: innerBoxIsScrolled,
+              title: _renderTitle(context),
+              bottom: _buildHeaderCard(context),
+
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(20.r),
+                ),
+              ),
+            ),
+          ),
+        ],
+        body: Builder(
+          builder: (BuildContext context) {
+            return RefreshIndicator(
+              onRefresh: () async => controller.fetchData(),
+              backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+              color: AppColors.primary,
+              edgeOffset: 150.h,
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverOverlapInjector(
+                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
+                      context,
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 20.h), // Spacing after overlap
+                          SizedBox(height: 24.h),
+                          Obx(
+                            () => LearningHeatmap(data: controller.heatmapData),
+                          ),
+                          SizedBox(height: 24.h),
+                          _buildQuickActions(context),
+                          SizedBox(height: 32.h),
+                          _buildAISuggestion(context),
+                          SizedBox(height: 32.h),
+                          _buildSectionHeader(context, 'Continue Learning', () {
+                            controller.goToMyCourses();
+                          }),
+                          SizedBox(height: 16.h),
+                          _buildContinueLearning(context),
+                          SizedBox(height: 32.h),
+                          _buildSectionHeader(
+                            context,
+                            'Recommended for You',
+                            () {
+                              controller.goToAllCourses();
+                            },
+                          ),
+                          SizedBox(height: 16.h),
+                          _buildRecommendations(context),
+                          SizedBox(height: 32.h),
+                          _buildStatsSection(context),
+                          SizedBox(height: 100.h),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ),
-        ),
-      ),
-      floatingActionButton: AnimatedTapScale(
-        onTap: () => _showCreatePathSheet(context),
-        child: Container(
-          width: 56.w,
-          height: 56.w,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.primary, Color(0xFF2563EB)],
-            ),
-            borderRadius: BorderRadius.circular(16.r),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.3),
-                blurRadius: 12,
-                offset: Offset(0, 6.h),
-              ),
-            ],
-          ),
-          child: Icon(Icons.add_rounded, color: Colors.white, size: 28.sp),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _renderTitle(BuildContext context) {
     final hour = DateTime.now().hour;
     String greeting = 'Good Morning';
     if (hour >= 12 && hour < 17) greeting = 'Good Afternoon';
     if (hour >= 17) greeting = 'Good Evening';
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => controller.goToProfile(),
+            onLongPress: () => controller.changeProfilePicture(),
+            child: Obx(() {
+              final profilePic = controller.user.value.profilePic;
+              return Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 20.r,
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    backgroundImage: profilePic != null && profilePic.isNotEmpty
+                        ? FileImage(File(profilePic)) as ImageProvider
+                        : null,
+                    child: profilePic == null || profilePic.isEmpty
+                        ? Text(
+                            (controller.user.value.name?.isNotEmpty ?? false)
+                                ? controller.user.value.name![0].toUpperCase()
+                                : 'U',
+                            style: GoogleFonts.outfit(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () => controller.changeProfilePicture(),
+                      child: Container(
+                        padding: EdgeInsets.all(2.r),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        child: Icon(
+                          Icons.camera_alt,
+                          size: 10.sp,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+          SizedBox(width: 12.w),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                greeting,
+                style: GoogleFonts.inter(
+                  color: Colors.white70,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Obx(
+                () => Text(
+                  controller.user.value.name ?? 'User',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          IconButton(
+            icon: Icon(
+              Icons.notifications_none_rounded,
+              size: 24.sp,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              HapticUtils.lightImpact();
+              controller.goToNotifications();
+            },
+          ),
+          // SizedBox(width: 8.w),
+          // IconButton(
+          //   icon: Icon(
+          //     Icons.favorite_border_rounded,
+          //     size: 24.sp,
+          //     color: Colors.white,
+          //   ),
+          //   onPressed: () {
+          //     // Get.to(() => FavouritesScreen()); // Add when available
+          //   },
+          // ),
+        ],
+      ),
+    );
+  }
+
+  PreferredSize _buildBottom(BuildContext context) {
+    return PreferredSize(
+      preferredSize: Size.fromHeight(70.h),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+        child: Row(
           children: [
-            Text(
-              greeting,
-              style: GoogleFonts.inter(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primary,
+            Expanded(
+              child: Container(
+                height: 44.h,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: Colors.transparent),
+                ),
+                child: TextField(
+                  cursorColor: AppColors.primary,
+                  style: GoogleFonts.inter(
+                    color: AppColors.primary,
+                    fontSize: 14.sp,
+                  ),
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
+                    hintStyle: GoogleFonts.inter(
+                      color: Colors.grey[400],
+                      fontSize: 14.sp,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: AppColors.primary,
+                      size: 20.sp,
+                    ),
+                    hintText: 'Search courses, topics...',
+                    border: InputBorder.none,
+                  ),
+                  onTap: () {
+                    // showSearch(...);
+                  },
+                ),
               ),
             ),
-            Text(
-              'Mian Abdullah',
-              style: GoogleFonts.outfit(
-                fontSize: 28.sp,
-                fontWeight: FontWeight.w900,
+            SizedBox(width: 12.w),
+            GestureDetector(
+              onTap: () {
+                // navigatorService.push(const EnhancedFilterScreen());
+              },
+              child: Container(
+                width: 44.h,
+                height: 44.h,
+                decoration: BoxDecoration(
+                  color: Colors.white, // White button on primary bg
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.tune_rounded,
+                    color: AppColors.primary, // Primary icon on white
+                    size: 20.sp,
+                  ),
+                ),
               ),
             ),
           ],
         ),
-        AnimatedTapScale(
-          onTap: () => Get.toNamed(Routes.profile),
-          child: Container(
-            padding: EdgeInsets.all(4.r),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-            ),
-            child: CircleAvatar(
-              radius: 22.r,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
-              child: Text(
-                'MA',
-                style: GoogleFonts.outfit(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildStreakCard(BuildContext context) {
-    return const StreakCelebrationCard(
-      streak: 12,
-      message: 'You\'re on fire! Keep it up for 3 more days to reach 15!',
-      showCelebration: true,
+  PreferredSizeWidget _buildHeaderCard(BuildContext context) {
+    return PreferredSize(
+      preferredSize: Size.fromHeight(110.h),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+        child: Obx(() {
+          final courses = controller.enrolledCourses;
+          if (courses.isEmpty) {
+            return const StreakCelebrationCard(
+              streak: 12,
+              message: 'Start a course to begin your streak!',
+              showCelebration: false,
+            );
+          }
+
+          final course = courses.first;
+          return Container(
+            padding: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(10.r),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Icon(
+                    Icons.play_circle_fill_rounded,
+                    color: AppColors.primary,
+                    size: 24.sp,
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Continue Learning',
+                        style: GoogleFonts.inter(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[600],
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        course.title,
+                        style: GoogleFonts.outfit(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 6.h),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4.r),
+                        child: LinearProgressIndicator(
+                          value: course.progress,
+                          backgroundColor: Colors.grey[100],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.primary,
+                          ),
+                          minHeight: 4.h,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Material(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(30.r),
+                  child: InkWell(
+                    onTap: () => controller.openCourse(course),
+                    borderRadius: BorderRadius.circular(30.r),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 8.h,
+                      ),
+                      child: Text(
+                        'Resume',
+                        style: GoogleFonts.inter(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
     );
   }
 
@@ -176,10 +439,11 @@ class DashboardView extends GetView<DashboardController> {
 
   Widget _buildContinueLearning(BuildContext context) {
     return Obx(() {
-      if (controller.enrolledCourses.isEmpty) {
+      final courses = controller.enrolledCourses;
+      if (courses.isEmpty) {
         return const SizedBox.shrink();
       }
-      final course = controller.enrolledCourses.first;
+      final course = courses.first;
       return LastActivityCard(
         courseTitle: course.title,
         topicTitle: 'Working with Variables',
@@ -195,17 +459,18 @@ class DashboardView extends GetView<DashboardController> {
     return SizedBox(
       height: 200.h,
       child: Obx(() {
-        if (controller.recommendedCourses.isEmpty) {
+        final courses = controller.recommendedCourses;
+        if (courses.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
         return ListView.separated(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           padding: EdgeInsets.zero,
-          itemCount: controller.recommendedCourses.length,
+          itemCount: courses.length,
           separatorBuilder: (_, __) => SizedBox(width: 16.w),
           itemBuilder: (context, index) {
-            final course = controller.recommendedCourses[index];
+            final course = courses[index];
             return _buildCourseCard(context, course);
           },
         );
@@ -218,7 +483,7 @@ class DashboardView extends GetView<DashboardController> {
     final accentColor = _getLanguageColor(course.category);
 
     return AnimatedTapScale(
-      onTap: () => Get.toNamed(Routes.courseDetails, arguments: course),
+      onTap: () => controller.openCourse(course),
       child: Container(
         width: 280.w,
         padding: EdgeInsets.all(16.r),
@@ -299,90 +564,100 @@ class DashboardView extends GetView<DashboardController> {
     return Row(
       children: [
         Expanded(
-          child: LevelProgressCard(
-            currentLevel: 12,
-            currentXP: 850,
-            xpForNextLevel: 1000,
-            color: AppColors.primary,
+          child: GestureDetector(
+            onTap: () => controller.goToAnalyticsTab(),
+            child: LevelProgressCard(
+              currentLevel: 12,
+              currentXP: 850,
+              xpForNextLevel: 1000,
+              color: AppColors.primary,
+            ),
           ),
         ),
       ],
     );
   }
 
-  void _showCreatePathSheet(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    HapticUtils.mediumImpact();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(32.r),
-            topRight: Radius.circular(32.r),
+  Widget _buildQuickActions(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildActionCard(
+            context,
+            'Quick Practice',
+            'Sharpen skills',
+            Icons.fitness_center_rounded,
+            const [Color(0xFF3B82F6), Color(0xFF2563EB)],
+            () => controller.goToPractice(),
           ),
         ),
-        padding: EdgeInsets.all(24.r),
+        SizedBox(width: 16.w),
+        Expanded(
+          child: _buildActionCard(
+            context,
+            'My Insights',
+            'View progress',
+            Icons.analytics_rounded,
+            const [Color(0xFF9333EA), Color(0xFF7C3AED)],
+            () => controller.goToAnalytics(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionCard(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    List<Color> colors,
+    VoidCallback onTap,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AnimatedTapScale(
+      onTap: () {
+        HapticUtils.mediumImpact();
+        onTap();
+      },
+      child: Container(
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colors[0].withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2.r),
-                ),
+            Container(
+              padding: EdgeInsets.all(10.r),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: colors),
+                borderRadius: BorderRadius.circular(12.r),
               ),
+              child: Icon(icon, color: Colors.white, size: 20.sp),
             ),
-            SizedBox(height: 24.h),
+            SizedBox(height: 12.h),
             Text(
-              'Create Learning Path',
+              title,
               style: GoogleFonts.outfit(
-                fontSize: 24.sp,
+                fontSize: 15.sp,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 8.h),
             Text(
-              'Choose a language to start your journey',
-              style: GoogleFonts.inter(fontSize: 14.sp, color: Colors.grey),
-            ),
-            SizedBox(height: 32.h),
-            Expanded(
-              child: GridView.builder(
-                physics: const BouncingScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16.w,
-                  mainAxisSpacing: 16.h,
-                  childAspectRatio: 1.5,
-                ),
-                itemCount: controller.languages.length,
-                itemBuilder: (context, index) {
-                  final lang = controller.languages[index];
-                  return _buildLanguageOption(context, lang);
-                },
-              ),
-            ),
-            SizedBox(height: 16.h),
-            LoadingButton(
-              text: 'Generate Path',
-              isFullWidth: true,
-              onPressed: () {
-                Get.back();
-                ToastNotification.show(
-                  context,
-                  message: 'AI is generating your path...',
-                  type: ToastType.info,
-                );
-              },
+              subtitle,
+              style: GoogleFonts.inter(fontSize: 11.sp, color: Colors.grey),
             ),
           ],
         ),
@@ -390,42 +665,77 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  Widget _buildLanguageOption(BuildContext context, Map<String, String> lang) {
+  Widget _buildAISuggestion(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = _getLanguageColor(lang['name']!);
-
     return Obx(() {
-      final isSelected = controller.selectedLanguage.value == lang['name'];
+      final rec = controller.recommendedTopic.value;
+      if (rec == null) return const SizedBox.shrink();
+
       return AnimatedTapScale(
-        onTap: () {
-          HapticUtils.selectionClick();
-          controller.selectedLanguage.value = lang['name']!;
-        },
+        onTap: () => controller.navigateToRecommendation(),
         child: Container(
+          padding: EdgeInsets.all(20.r),
           decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16.r),
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                  : [const Color(0xFFF8FAFC), Colors.white],
+            ),
+            borderRadius: BorderRadius.circular(24.r),
             border: Border.all(
-              color: isSelected
-                  ? color
-                  : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-              width: isSelected ? 2 : 1.5,
+              color: AppColors.primary.withOpacity(0.2),
+              width: 2,
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Row(
             children: [
-              Text(lang['icon']!, style: TextStyle(fontSize: 24.sp)),
-              SizedBox(height: 8.h),
-              Text(
-                lang['name']!,
-                style: GoogleFonts.outfit(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected
-                      ? color
-                      : (isDark ? Colors.white : Colors.black),
+              Container(
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppColors.primary,
+                  size: 24.sp,
+                ),
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AI INSIGHT',
+                      style: GoogleFonts.inter(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    Text(
+                      'Retake ${rec.conceptName}',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Focus on ${rec.subTopic} to improve mastery.',
+                      style: GoogleFonts.inter(
+                        fontSize: 12.sp,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16.sp,
+                color: AppColors.primary,
               ),
             ],
           ),

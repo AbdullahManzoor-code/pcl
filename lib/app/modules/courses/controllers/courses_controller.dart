@@ -5,6 +5,8 @@ import '../../../data/services/mock_api_service.dart';
 import '../../../routes/app_pages.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/haptic_utils.dart';
+import '../../../core/theme/app_theme.dart';
+import 'package:flutter/material.dart';
 
 class CoursesController extends GetxController {
   late final CourseRepository _courseRepository;
@@ -22,19 +24,81 @@ class CoursesController extends GetxController {
   final difficulties = <String>['All', 'Easy', 'Medium', 'Hard'].obs;
   final sortOptions = <String>['Name', 'Progress', 'Rating'].obs;
 
+  // Creation States
+  final selectedLanguage = 'Python'.obs;
+  final isCreating = false.obs;
+
+  final languages = [
+    {'name': 'Python', 'icon': '🐍'},
+    {'name': 'JavaScript', 'icon': '📜'},
+    {'name': 'C++', 'icon': '⚙️'},
+    {'name': 'Java', 'icon': '☕'},
+    {'name': 'TypeScript', 'icon': '📘'},
+    {'name': 'Go', 'icon': '🐹'},
+  ];
+
+  final creationDifficulties = ['Beginner', 'Intermediate', 'Advanced'];
+  final creationSelectedDifficulty = 'Beginner'.obs;
+
+  final creationIntensities = ['Casual', 'Regular', 'Intense'];
+  final creationSelectedIntensity = 'Regular'.obs;
+
+  void createLearningPath() async {
+    isCreating.value = true;
+    try {
+      await Future.delayed(const Duration(seconds: 1)); // Mock API delay
+
+      final service = Get.find<MockApiService>();
+      service.createCourse(
+        language: selectedLanguage.value,
+        level: creationSelectedDifficulty.value,
+        intensity: creationSelectedIntensity.value,
+      );
+
+      // Refresh courses list
+      fetchCourses();
+
+      Get.snackbar(
+        'Success',
+        'Started new learning path: ${selectedLanguage.value}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.success.withOpacity(0.1),
+        colorText: AppColors.success,
+        icon: const Icon(Icons.check_circle_outline, color: AppColors.success),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to create learning path. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error.withOpacity(0.1),
+        colorText: AppColors.error,
+        icon: const Icon(Icons.error_outline, color: AppColors.error),
+      );
+      AppLogger.error('Error creating learning path: $e');
+    } finally {
+      isCreating.value = false;
+    }
+  }
+
   List<Course> get filteredCourses {
     var filtered = courses.where((course) {
+      final query = searchText.value.trim().toLowerCase();
       final matchesSearch =
-          course.title.toLowerCase().contains(searchText.value.toLowerCase()) ||
-          course.description.toLowerCase().contains(
-            searchText.value.toLowerCase(),
-          );
+          query.isEmpty ||
+          course.title.toLowerCase().contains(query) ||
+          course.description.toLowerCase().contains(query);
+
+      final category = selectedCategory.value;
       final matchesCategory =
-          selectedCategory.value == 'All' ||
-          course.category == selectedCategory.value;
+          category == 'All' ||
+          course.category.toLowerCase() == category.toLowerCase();
+
+      final difficulty = selectedDifficulty.value;
       final matchesDifficulty =
-          selectedDifficulty.value == 'All' ||
-          course.level == selectedDifficulty.value;
+          difficulty == 'All' ||
+          course.level.toLowerCase() == difficulty.toLowerCase();
+
       return matchesSearch && matchesCategory && matchesDifficulty;
     }).toList();
 

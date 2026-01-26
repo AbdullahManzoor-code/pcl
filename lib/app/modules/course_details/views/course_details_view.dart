@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../controllers/course_details_controller.dart';
 import '../../../core/widgets/next_components.dart';
-import '../../../core/utils/responsive_view.dart';
+import '../../../core/widgets/animated_widgets.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -16,195 +16,334 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Course Details')),
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [AppColors.darkBg, AppColors.darkSurface, AppColors.darkBg]
-                : [
-                    const Color(0xFFF8FAFC), // AppColors.lightBg
-                    Colors.white,
-                    const Color(0xFFF1F5F9), // AppColors.lightDivider
-                  ],
-          ),
+          color: isDark ? AppColors.darkBg : AppColors.lightBg,
         ),
-        child: SafeArea(
-          child: Obx(() {
-            if (controller.isLoading.value) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            final course = controller.course.value;
-            if (course == null) {
-              return const Center(child: Text('Course not found'));
-            }
+          final course = controller.course.value;
+          if (course == null) {
+            return const Center(child: Text('Course not found'));
+          }
 
-            return ResponsiveView(
-              mobile: _buildMobileLayout(context, course, isDark),
-              desktop: _buildDesktopLayout(context, course, isDark),
-            );
-          }),
-        ),
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildSliverAppBar(context, course, isDark),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(24.r),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDemoTestCard(context, course, isDark),
+                      SizedBox(height: 32.h),
+                      _buildCourseGuide(context, course, isDark),
+                      SizedBox(height: 32.h),
+                      _buildStatsGrid(context, course, crossAxisCount: 2),
+                      SizedBox(height: 40.h),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.list_alt_rounded,
+                            color: AppColors.primary,
+                            size: 24.sp,
+                          ),
+                          SizedBox(width: 12.w),
+                          Text(
+                            'Learning Journey',
+                            style: GoogleFonts.outfit(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : AppColors.darkBg,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16.h),
+                      _buildTopicsList(context, isDark),
+                      SizedBox(height: 100.h), // Space for FAB
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }),
       ),
+      floatingActionButton: Obx(() {
+        final course = controller.course.value;
+        if (course == null) return const SizedBox.shrink();
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: NextButton(
+            text: course.isEnrolled ? 'Continue Learning' : 'Enroll Now',
+            onPressed: () {
+              HapticUtils.heavyImpact();
+              if (course.isEnrolled) {
+                controller.continueLearning();
+              } else {
+                controller.enroll();
+              }
+            },
+            icon: course.isEnrolled
+                ? Icons.play_arrow_rounded
+                : Icons.add_rounded,
+            isFullWidth: true,
+          ),
+        );
+      }),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context, dynamic course, bool isDark) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+  Widget _buildCourseGuide(BuildContext context, dynamic course, bool isDark) {
+    return Container(
+      width: double.infinity,
       padding: EdgeInsets.all(24.r),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(context, course, isDark),
-          _buildDemoTestCard(context, course, isDark),
-          SizedBox(height: 32.h),
-          _buildStatsGrid(context, course, crossAxisCount: 2),
-          SizedBox(height: 32.h),
-          Text(
-            'Core Topics',
-            style: GoogleFonts.inter(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
-            ),
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.r),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppColors.primary,
+                  size: 20.sp,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Text(
+                'AI Path Guide',
+                style: GoogleFonts.outfit(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
           ),
           SizedBox(height: 16.h),
-          _buildTopicsList(context, isDark),
+          Text(
+            course.description,
+            style: GoogleFonts.inter(
+              fontSize: 15.sp,
+              color: isDark ? Colors.white70 : Colors.black87,
+              height: 1.6,
+            ),
+          ),
+          SizedBox(height: 20.h),
+          Wrap(
+            spacing: 12.w,
+            runSpacing: 12.h,
+            children: [
+              _buildGuideFeature(
+                Icons.check_circle_outline_rounded,
+                'Structured for ${course.level}',
+              ),
+              _buildGuideFeature(
+                Icons.bolt_rounded,
+                '${course.intensity} Pace',
+              ),
+              _buildGuideFeature(
+                Icons.psychology_outlined,
+                'AI Evaluation Ready',
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDesktopLayout(
-    BuildContext context,
-    dynamic course,
-    bool isDark,
-  ) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 1200.w),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: 48.w, vertical: 32.h),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left Column: Course Info & Stats
-              Expanded(
-                flex: 4,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(context, course, isDark),
-                    _buildDemoTestCard(context, course, isDark),
-                    SizedBox(height: 32.h),
-                    _buildStatsGrid(context, course, crossAxisCount: 2),
-                  ],
-                ),
-              ),
-              SizedBox(width: 48.w),
-              // Right Column: Topics List
-              Expanded(
-                flex: 6,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Core Topics',
-                      style: GoogleFonts.inter(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
-                    _buildTopicsList(context, isDark),
-                  ],
-                ),
-              ),
-            ],
+  Widget _buildGuideFeature(IconData icon, String label) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16.sp, color: AppColors.primary),
+          SizedBox(width: 8.w),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.darkTextSecondary,
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, dynamic course, bool isDark) {
-    final level = course.level.toString();
-    Color badgeColor;
-    Color badgeTextColor;
-    if (level.contains("Beginner") || level.contains("Easy")) {
-      badgeColor = isDark ? AppColors.successBgDark : AppColors.successBgLight;
-      badgeTextColor = isDark
-          ? AppColors.successTextDark
-          : AppColors.successTextLight;
-    } else if (level.contains("Intermediate") || level.contains("Medium")) {
-      badgeColor = isDark
-          ? const Color(0xFF713F12)
-          : AppColors.accent.withOpacity(0.2);
-      badgeTextColor = isDark ? AppColors.accent : const Color(0xFFA16207);
-    } else {
-      badgeColor = isDark ? AppColors.errorBgDark : AppColors.errorBgLight;
-      badgeTextColor = isDark
-          ? AppColors.errorTextDark
-          : AppColors.errorTextLight;
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+  Widget _buildSliverAppBar(BuildContext context, dynamic course, bool isDark) {
+    return SliverAppBar(
+      expandedHeight: 240.h,
+      pinned: true,
+      stretch: true,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded),
+        onPressed: () => Get.back(),
+      ),
+      flexibleSpace: FlexibleSpaceBar(
+        stretchModes: const [
+          StretchMode.zoomBackground,
+          StretchMode.blurBackground,
+        ],
+        background: Stack(
+          fit: StackFit.expand,
           children: [
-            ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                colors: [
-                  Color(0xFF2563EB), // Blue-600
-                  Color(0xFF9333EA), // Purple-600
-                  Color(0xFF2563EB), // Blue-600
-                ],
-              ).createShader(bounds),
-              child: Text(
-                course.title,
-                style: GoogleFonts.inter(
-                  fontSize: 32.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+            // Gradient Background
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.8),
+                    AppColors.violet600.withOpacity(0.9),
+                  ],
                 ),
               ),
             ),
-            SizedBox(width: 12.w),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: badgeColor,
-                borderRadius: BorderRadius.circular(999.r),
-              ),
-              child: Text(
-                course.level,
-                style: GoogleFonts.inter(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  color: badgeTextColor,
+            // Pattern or Accent
+            Positioned(
+              right: -50.w,
+              top: -50.h,
+              child: Container(
+                width: 200.w,
+                height: 200.w,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: EdgeInsets.all(24.r),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 6.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          course.level.toString().toUpperCase(),
+                          style: GoogleFonts.inter(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        Container(
+                          width: 4.w,
+                          height: 4.w,
+                          decoration: const BoxDecoration(
+                            color: Colors.white70,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          '${course.intensity} Intensity'.toUpperCase(),
+                          style: GoogleFonts.inter(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white70,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  Text(
+                    course.title,
+                    style: GoogleFonts.outfit(
+                      fontSize: 32.sp,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.star_rounded,
+                        color: Colors.amber,
+                        size: 18.sp,
+                      ),
+                      SizedBox(width: 4.w),
+                      Text(
+                        '${course.rating} (${course.reviewCount})',
+                        style: GoogleFonts.inter(
+                          fontSize: 14.sp,
+                          color: Colors.white.withOpacity(0.9),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(width: 16.w),
+                      Icon(
+                        Icons.category_rounded,
+                        color: Colors.white70,
+                        size: 18.sp,
+                      ),
+                      SizedBox(width: 4.w),
+                      Text(
+                        course.category,
+                        style: GoogleFonts.inter(
+                          fontSize: 14.sp,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        SizedBox(height: 8.h),
-        Text(
-          'Track your progress and practice with MCQs',
-          style: GoogleFonts.inter(
-            fontSize: 16.sp,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -366,225 +505,163 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
   }
 
   Widget _buildTopicsList(BuildContext context, bool isDark) {
-    return ListView.separated(
+    return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: controller.topics.length,
-      separatorBuilder: (context, index) => SizedBox(height: 16.h),
       itemBuilder: (context, index) {
         final topic = controller.topics[index];
 
         return Obx(() {
           final selected = controller.selectedTopicId.value == topic.id;
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(8.r),
-              border: Border.all(
-                color: selected
-                    ? const Color(0xFF3B82F6)
-                    : (isDark
-                          ? const Color(0xFF334155)
-                          : const Color(0xFFE2E8F0)),
-                width: selected ? 2.w : 1.w,
-              ),
-              boxShadow: selected
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF3B82F6).withOpacity(0.1),
-                        blurRadius: 10.r,
-                        offset: Offset(0, 5.h),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Column(
-              children: [
-                InkWell(
-                  onTap: () {
-                    HapticUtils.selectionClick();
-                    if (controller.selectedTopicId.value == topic.id) {
-                      controller.selectedTopicId.value = null;
-                    } else {
-                      controller.selectedTopicId.value = topic.id;
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Padding(
-                    padding: EdgeInsets.all(20.r),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      topic.name,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 18.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark
-                                            ? Colors.white
-                                            : const Color(0xFF0F172A),
-                                      ),
-                                    ),
-                                  ),
-                                  if (topic.completed)
-                                    Padding(
-                                      padding: EdgeInsets.only(left: 8.w),
-                                      child: Icon(
-                                        Icons.check_circle_rounded,
-                                        color: const Color(0xFF22C55E),
-                                        size: 20.sp,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            if (topic.completed)
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'Accuracy',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12.sp,
-                                      color: isDark
-                                          ? const Color(0xFF94A3B8)
-                                          : const Color(0xFF64748B),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${topic.accuracy}%',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF22C55E),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          '${topic.subTopics.length} subtopics',
-                          style: GoogleFonts.inter(
-                            fontSize: 14.sp,
-                            color: isDark
-                                ? const Color(0xFF94A3B8)
-                                : const Color(0xFF64748B),
-                          ),
-                        ),
-                        SizedBox(height: 12.h),
-                        Wrap(
-                          spacing: 8.w,
-                          runSpacing: 8.h,
-                          children: topic.subTopics
-                              .take(3)
-                              .map(
-                                (sub) => Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 4.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? const Color(0xFF334155)
-                                        : const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(999.r),
-                                  ),
-                                  child: Text(
-                                    sub.title,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12.sp,
-                                      color: isDark
-                                          ? const Color(0xFFCBD5E1)
-                                          : const Color(0xFF475569),
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ],
-                    ),
-                  ),
+          return AnimatedTapScale(
+            onTap: () {
+              HapticUtils.selectionClick();
+              if (controller.selectedTopicId.value == topic.id) {
+                controller.selectedTopicId.value = null;
+              } else {
+                controller.selectedTopicId.value = topic.id;
+              }
+            },
+            child: Container(
+              margin: EdgeInsets.only(bottom: 16.h),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface : Colors.white,
+                borderRadius: BorderRadius.circular(24.r),
+                border: Border.all(
+                  color: selected
+                      ? AppColors.primary
+                      : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  width: selected ? 2 : 1.5,
                 ),
-                if (selected)
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: isDark
-                              ? const Color(0xFF334155)
-                              : const Color(0xFFE2E8F0),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.15),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
                         ),
-                      ),
-                    ),
+                      ]
+                    : null,
+              ),
+              child: Column(
+                children: [
+                  Padding(
                     padding: EdgeInsets.all(20.r),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Text(
-                          'Number of MCQs',
-                          style: GoogleFonts.inter(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF0F172A),
+                        // Topic Icon/Index
+                        Container(
+                          width: 48.w,
+                          height: 48.w,
+                          decoration: BoxDecoration(
+                            color: topic.completed
+                                ? AppColors.success.withOpacity(0.1)
+                                : AppColors.primary.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: topic.completed
+                                ? Icon(
+                                    Icons.check_rounded,
+                                    color: AppColors.success,
+                                    size: 24.sp,
+                                  )
+                                : Text(
+                                    '${index + 1}',
+                                    style: GoogleFonts.outfit(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18.sp,
+                                    ),
+                                  ),
                           ),
                         ),
-                        SizedBox(height: 8.h),
-                        Container(
-                          height: 48.h,
-                          padding: EdgeInsets.symmetric(horizontal: 12.w),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFCBD5E1),
-                            ),
-                            borderRadius: BorderRadius.circular(6.r),
-                            color: isDark
-                                ? const Color(0xFF0F172A)
-                                : Colors.white,
-                          ),
-                          child: Row(
+                        SizedBox(width: 16.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: TextFormField(
-                                  initialValue: controller.numQuestions.value
-                                      .toString(),
-                                  keyboardType: TextInputType.number,
-                                  style: GoogleFonts.inter(
-                                    color: isDark ? Colors.white : Colors.black,
-                                  ),
-                                  decoration: const InputDecoration(
-                                    border: InputBorder.none,
-                                  ),
-                                  onChanged: (val) {
-                                    final n = int.tryParse(val);
-                                    if (n != null)
-                                      controller.numQuestions.value = n;
-                                  },
+                              Text(
+                                topic.name,
+                                style: GoogleFonts.inter(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.darkBg,
+                                ),
+                              ),
+                              SizedBox(height: 4.h),
+                              Text(
+                                '${topic.subTopics.length} Lessons • ${topic.subTopics.length * 10} mins',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12.sp,
+                                  color: Colors.grey,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        SizedBox(height: 16.h),
-                        SizedBox(
-                          width: double.infinity,
-                          child: NextButton(
-                            text: 'Start Test',
+                        if (topic.completed)
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.w,
+                              vertical: 4.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Text(
+                              '${topic.accuracy}%',
+                              style: GoogleFonts.outfit(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.success,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (selected) ...[
+                    const Divider(height: 1),
+                    Padding(
+                      padding: EdgeInsets.all(20.r),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Configuration',
+                            style: GoogleFonts.inter(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 16.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildSelectionChip(
+                                  'Quiz Mode',
+                                  Icons.quiz_rounded,
+                                  true,
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: _buildSelectionChip(
+                                  'Study Mode',
+                                  Icons.menu_book_rounded,
+                                  false,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 20.h),
+                          NextButton(
+                            text: 'Launch Assessment',
                             onPressed: () {
                               HapticUtils.mediumImpact();
                               controller.startTest(
@@ -592,32 +669,52 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
                                 controller.numQuestions.value,
                               );
                             },
-                            outline: true,
+                            isFullWidth: true,
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: NextButton(
-                        text: 'Practice This Topic',
-                        onPressed: () {
-                          HapticUtils.lightImpact();
-                          controller.selectedTopicId.value = topic.id;
-                        },
-                        outline: true,
+                        ],
                       ),
                     ),
-                  ),
-              ],
+                  ],
+                ],
+              ),
             ),
           );
         });
       },
+    );
+  }
+
+  Widget _buildSelectionChip(String label, IconData icon, bool active) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12.h),
+      decoration: BoxDecoration(
+        color: active
+            ? AppColors.primary.withOpacity(0.05)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: active ? AppColors.primary : AppColors.lightBorder,
+          width: active ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: active ? AppColors.primary : Colors.grey,
+            size: 20.sp,
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11.sp,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+              color: active ? AppColors.primary : Colors.grey,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

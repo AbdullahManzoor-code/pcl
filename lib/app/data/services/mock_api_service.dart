@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'dart:math';
+import 'package:intl/intl.dart';
 
 class MockApiService extends GetxService {
   final _storage = GetStorage();
@@ -15,6 +16,7 @@ class MockApiService extends GetxService {
   void onInit() {
     super.onInit();
     _loadData();
+    _generateHeatmapData();
   }
 
   void _loadData() {
@@ -48,17 +50,94 @@ class MockApiService extends GetxService {
   final RxMap<String, dynamic> _user = <String, dynamic>{
     'name': 'Mian',
     'email': 'mian@example.com',
-    'profile_pic': null, // Will use default avatar
+    'profile_pic': null,
     'bio': 'Passionate coder and Flutter enthusiast.',
     'stats': {
-      'consecutive_days': 15, // Matches Next.js 'Current Streak'
-      'total_hours': 30, // Arbitrary
+      'consecutive_days': 15,
+      'total_hours': 30,
       'completed_courses': 2,
       'total_xp': 12500,
       'today_points': 8,
       'today_minutes': 12,
     },
   }.obs;
+
+  // Achievement Data
+  final RxList<Map<String, dynamic>> achievements = <Map<String, dynamic>>[
+    {
+      'id': 'a1',
+      'title': 'Early Bird',
+      'description': 'Complete a lesson before 8:00 AM',
+      'category': 'streak',
+      'requiredCount': 1,
+      'isUnlocked': true,
+      'currentProgress': 1,
+      'unlockedAt': DateTime.now()
+          .subtract(const Duration(days: 5))
+          .toIso8601String(),
+    },
+    {
+      'id': 'a2',
+      'title': 'Code Ninja',
+      'description': 'Maintain a 7-day streak',
+      'category': 'streak',
+      'requiredCount': 7,
+      'isUnlocked': true,
+      'currentProgress': 15,
+      'unlockedAt': DateTime.now()
+          .subtract(const Duration(days: 2))
+          .toIso8601String(),
+    },
+    {
+      'id': 'a3',
+      'title': 'Polyglot',
+      'description': 'Enroll in 3 different languages',
+      'category': 'courses',
+      'requiredCount': 3,
+      'isUnlocked': true,
+      'currentProgress': 3,
+      'unlockedAt': DateTime.now()
+          .subtract(const Duration(days: 1))
+          .toIso8601String(),
+    },
+    {
+      'id': 'a4',
+      'title': 'Perfect Score',
+      'description': 'Get 100% accuracy in 5 quizzes',
+      'category': 'quizzes',
+      'requiredCount': 5,
+      'isUnlocked': false,
+      'currentProgress': 3,
+    },
+    {
+      'id': 'a5',
+      'title': 'Python Master',
+      'description': 'Complete the entire Python path',
+      'category': 'mastery',
+      'requiredCount': 8,
+      'isUnlocked': false,
+      'currentProgress': 0,
+    },
+  ].obs;
+
+  // Heatmap Data (last 90 days)
+  final RxMap<String, int> heatmapData = <String, int>{}.obs;
+
+  void _generateHeatmapData() {
+    final now = DateTime.now();
+    final random = Random();
+    for (int i = 0; i < 90; i++) {
+      final date = now.subtract(Duration(days: i));
+      final dateStr = DateFormat('yyyy-MM-dd').format(date);
+      // Random activity: 0 (none), 1-2 (low), 3-5 (med), 6-10 (high)
+      final chance = random.nextDouble();
+      if (chance > 0.3) {
+        heatmapData[dateStr] = random.nextInt(10) + 1;
+      } else {
+        heatmapData[dateStr] = 0;
+      }
+    }
+  }
 
   // Mock Courses Data - Matched to Next.js 'My Learning Paths'
   final RxList<Map<String, dynamic>> courses = <Map<String, dynamic>>[
@@ -74,7 +153,8 @@ class MockApiService extends GetxService {
       'is_enrolled': true,
       'rating': 4.8,
       'review_count': 120,
-      'description': 'Master Python programming language.',
+      'description':
+          'A comprehensive path designed for learners who want to master Python automation and data analysis. This Regular-paced route covers core logic, libraries like Pandas, and system integration.',
       'accuracy': 0,
       'topics_completed': 0,
       'total_topics': 8,
@@ -91,7 +171,8 @@ class MockApiService extends GetxService {
       'is_enrolled': true,
       'rating': 4.5,
       'review_count': 890,
-      'description': 'Modern JavaScript development.',
+      'description':
+          'A high-intensity path for experienced developers transitioning to modern JavaScript frameworks. Focuses on ESNext, asynchronous patterns, and high-performance DOM manipulation.',
       'accuracy': 82,
       'topics_completed': 6,
       'total_topics': 8,
@@ -129,6 +210,142 @@ class MockApiService extends GetxService {
       'accuracy': 90,
       'topics_completed': 1,
       'total_topics': 8,
+    },
+    {
+      'id': 'flutter_flow',
+      'title': 'Flutter Mobile',
+      'category': 'Mobile',
+      'level': 'Medium',
+      'difficulty': 0.6,
+      'image': 'assets/images/flutter.png',
+      'progress': 0.0,
+      'is_completed': false,
+      'is_enrolled': false,
+      'rating': 4.9,
+      'review_count': 2300,
+      'description': 'Build beautiful native apps with Flutter.',
+      'accuracy': 0,
+      'topics_completed': 0,
+      'total_topics': 12,
+    },
+    {
+      'id': 'react_mastery',
+      'title': 'React Web',
+      'category': 'Web',
+      'level': 'Medium',
+      'difficulty': 0.5,
+      'image': 'assets/images/react.png',
+      'progress': 0.0,
+      'is_completed': false,
+      'is_enrolled': false,
+      'rating': 4.7,
+      'review_count': 3100,
+      'description': 'Modern web development with React hooks.',
+      'accuracy': 0,
+      'topics_completed': 0,
+      'total_topics': 10,
+    },
+    {
+      'id': 'node_backend',
+      'title': 'Node.js Backend',
+      'category': 'Web',
+      'level': 'Hard',
+      'difficulty': 0.8,
+      'image': 'assets/images/node.png',
+      'progress': 0.0,
+      'is_completed': false,
+      'is_enrolled': false,
+      'rating': 4.4,
+      'review_count': 1200,
+      'description': 'Scalable server-side apps with Node.',
+      'accuracy': 0,
+      'topics_completed': 0,
+      'total_topics': 15,
+    },
+    {
+      'id': 'aws_cloud',
+      'title': 'AWS Cloud Architect',
+      'category': 'Cloud',
+      'level': 'Hard',
+      'difficulty': 0.9,
+      'image': 'assets/images/aws.png',
+      'progress': 0.0,
+      'is_completed': false,
+      'is_enrolled': false,
+      'rating': 4.8,
+      'review_count': 800,
+      'description': 'Master AWS services and architecture.',
+      'accuracy': 0,
+      'topics_completed': 0,
+      'total_topics': 20,
+    },
+    {
+      'id': 'tensorflow_ai',
+      'title': 'AI & Machine Learning',
+      'category': 'AI',
+      'level': 'Hard',
+      'difficulty': 0.85,
+      'image': 'assets/images/ai.png',
+      'progress': 0.0,
+      'is_completed': false,
+      'is_enrolled': false,
+      'rating': 4.9,
+      'review_count': 1500,
+      'description': 'Deep learning with TensorFlow and Keras.',
+      'accuracy': 0,
+      'topics_completed': 0,
+      'total_topics': 18,
+    },
+    {
+      'id': 'swift_ios',
+      'title': 'iOS Development',
+      'category': 'Mobile',
+      'level': 'Medium',
+      'difficulty': 0.55,
+      'image': 'assets/images/swift.png',
+      'progress': 0.0,
+      'is_completed': false,
+      'is_enrolled': false,
+      'rating': 4.7,
+      'review_count': 900,
+      'description': 'Master Swift and SwiftUI for iOS.',
+      'accuracy': 0,
+      'topics_completed': 0,
+      'total_topics': 14,
+    },
+    {
+      'id': 'go_lang',
+      'title': 'Go Programming',
+      'category': 'Language',
+      'level': 'Medium',
+      'difficulty': 0.6,
+      'image': 'assets/images/go.png',
+      'progress': 0.0,
+      'is_completed': false,
+      'is_enrolled': false,
+      'rating': 4.6,
+      'review_count': 450,
+      'description': 'Concurrency-focused programming with Go.',
+      'accuracy': 0,
+      'topics_completed': 0,
+      'total_topics': 10,
+    },
+    {
+      'id': 'docker_devops',
+      'title': 'Docker & Kubernetes',
+      'category': 'Cloud',
+      'level': 'Hard',
+      'difficulty': 0.75,
+      'image': 'assets/images/docker.png',
+      'progress': 0.0,
+      'is_completed': false,
+      'is_enrolled': false,
+      'rating': 4.8,
+      'review_count': 2000,
+      'description': 'Containerization and orchestration.',
+      'accuracy': 0,
+      'topics_completed': 0,
+      'total_topics': 16,
     },
   ].obs;
 
@@ -361,48 +578,176 @@ class MockApiService extends GetxService {
   final _topics = {
     'python_3': [
       {
-        'id': 'c1_m1',
-        'name': 'Module 1: Introduction to Python',
-        'description': 'Setting up and first steps.',
+        'id': 'py_m1',
+        'name': '1. Python Fundamentals',
+        'description': 'Setting up and core syntax basics.',
         'sub_topics': [
           {
-            'id': 't1',
-            'title': 'Installation & Environment',
-            'type': 'video',
-            'is_locked': false,
-            'is_completed': true,
-          },
-          {
-            'id': 't2',
-            'title': 'Your First Python Script',
+            'id': 'py_t1',
+            'title': 'Hello World & Setup',
             'type': 'text',
             'is_locked': false,
             'is_completed': true,
             'content':
-                'To run your first Python script, use the print function. This function outputs text to the console. Try running the code below:',
-            'code': 'print("Hello, World!")',
+                'Python is a high-level, interpreted language known for its readability. Start by installing Python from python.org and using an IDE like VS Code.',
+            'code': 'print("Hello, LearnRL!")',
+            'language': 'python',
+          },
+          {
+            'id': 'py_t2',
+            'title': 'Variables & Constants',
+            'type': 'text',
+            'is_locked': false,
+            'is_completed': true,
+            'content':
+                'Variables store data values. Python is dynamically typed, so you don\'t need to declare types.',
+            'code': 'name = "Mian"\nage = 25\npi = 3.14159',
             'language': 'python',
           },
         ],
       },
       {
-        'id': 'c1_m2',
-        'name': 'Module 2: Variables & Data Types',
-        'description': 'Basic building blocks.',
+        'id': 'py_m2',
+        'name': '2. Data Structures',
+        'description': 'Mastering lists, tuples, and dictionaries.',
         'sub_topics': [
           {
-            'id': 't3',
-            'title': 'Integers, Floats & Booleans',
+            'id': 'py_t3',
+            'title': 'Dynamic Lists',
             'type': 'text',
             'is_locked': false,
-            'is_completed': true,
+            'is_completed': false,
+            'content':
+                'Lists are used to store multiple items in a single variable. They are ordered and changeable.',
+            'code':
+                'fruits = ["apple", "banana", "cherry"]\nfruits.append("orange")\nprint(fruits[1])',
+            'language': 'python',
           },
           {
-            'id': 't4',
-            'title': 'String Manipulation',
-            'type': 'video',
+            'id': 'py_t4',
+            'title': 'Power of Dictionaries',
+            'type': 'text',
             'is_locked': false,
             'is_completed': false,
+            'content':
+                'Dictionaries store data in key:value pairs. They are optimized for fast retrieval.',
+            'code':
+                'user = {"id": 1, "name": "Mian", "role": "Dev"}\nprint(user.get("name"))',
+            'language': 'python',
+          },
+        ],
+      },
+      {
+        'id': 'py_m3',
+        'name': '3. Control Flow',
+        'description': 'Logical branching and looping patterns.',
+        'sub_topics': [
+          {
+            'id': 'py_t5',
+            'title': 'Conditional Logic',
+            'type': 'text',
+            'is_locked': false,
+            'is_completed': false,
+            'content':
+                'Use if, elif, and else to control the flow of your program based on conditions.',
+            'code':
+                'score = 85\nif score >= 90:\n    print("A")\nelif score >= 80:\n    print("B")\nelse:\n    print("Study harder")',
+            'language': 'python',
+          },
+        ],
+      },
+      {
+        'id': 'py_m4',
+        'name': '4. Functional Python',
+        'description': 'Clean code with functions and lambdas.',
+        'sub_topics': [
+          {
+            'id': 'py_t6',
+            'title': 'Defining Functions',
+            'type': 'text',
+            'is_locked': false,
+            'is_completed': false,
+            'content':
+                'Functions are blocks of code that run when called. Use them to wrap repetitive logic.',
+            'code':
+                'def greet(name):\n    return f"Welcome, {name}!"\n\nprint(greet("Student"))',
+            'language': 'python',
+          },
+        ],
+      },
+      {
+        'id': 'py_m5',
+        'name': '5. Object Oriented Core',
+        'description': 'Classes, objects, and inheritance.',
+        'sub_topics': [
+          {
+            'id': 'py_t7',
+            'title': 'Class Structure',
+            'type': 'text',
+            'is_locked': false,
+            'is_completed': false,
+            'content':
+                'Classes provide a means of bundling data and functionality together.',
+            'code':
+                'class Robot:\n    def __init__(self, name):\n        self.name = name\n    def work(self):\n        print(f"{self.name} is working...")',
+            'language': 'python',
+          },
+        ],
+      },
+      {
+        'id': 'py_m6',
+        'name': '6. Error Resilience',
+        'description': 'Exception handling and debugging.',
+        'sub_topics': [
+          {
+            'id': 'py_t8',
+            'title': 'Try/Except Patterns',
+            'type': 'text',
+            'is_locked': false,
+            'is_completed': false,
+            'content':
+                'Errors happen. Use try blocks to catch exceptions and prevent app crashes.',
+            'code':
+                'try:\n    result = 10 / 0\nexcept ZeroDivisionError:\n    print("Cannot divide by zero!")',
+            'language': 'python',
+          },
+        ],
+      },
+      {
+        'id': 'py_m7',
+        'name': '7. Standard Libraries',
+        'description': 'The "batteries included" philosophy.',
+        'sub_topics': [
+          {
+            'id': 'py_t9',
+            'title': 'Date & Time Math',
+            'type': 'text',
+            'is_locked': false,
+            'is_completed': false,
+            'content':
+                'Python includes powerful modules like datetime for handling temporal data.',
+            'code':
+                'from datetime import datetime\nprint(datetime.now().strftime("%Y-%m-%d"))',
+            'language': 'python',
+          },
+        ],
+      },
+      {
+        'id': 'py_m8',
+        'name': '8. Modern Modules',
+        'description': 'External libraries and package management.',
+        'sub_topics': [
+          {
+            'id': 'py_t10',
+            'title': 'Requests & APIs',
+            'type': 'text',
+            'is_locked': false,
+            'is_completed': false,
+            'content':
+                'Master pip and the requests library to interact with web services.',
+            'code':
+                '# pip install requests\n# import requests\n# response = requests.get("https://api.github.com")',
+            'language': 'python',
           },
         ],
       },
@@ -485,6 +830,8 @@ class MockApiService extends GetxService {
   // Methods to retrieve data
   Map<String, dynamic> getUserStats() => _user['stats'] as Map<String, dynamic>;
 
+  Map<String, dynamic> getUser() => Map<String, dynamic>.from(_user);
+
   List<Map<String, dynamic>> getAllCourses() {
     return courses.map((c) {
       final reviews = _reviews[c['id']] ?? [];
@@ -556,8 +903,20 @@ class MockApiService extends GetxService {
     _user.refresh();
   }
 
+  void updateUserName(String name) {
+    _user['name'] = name;
+    _saveUser();
+    _user.refresh();
+  }
+
   void updateBio(String bio) {
     _user['bio'] = bio;
+    _saveUser();
+    _user.refresh();
+  }
+
+  void updateProfilePic(String? profilePicPath) {
+    _user['profile_pic'] = profilePicPath;
     _saveUser();
     _user.refresh();
   }
@@ -567,6 +926,79 @@ class MockApiService extends GetxService {
       _reviews[courseId] = [];
     }
     _reviews[courseId]!.add(review);
+  }
+
+  String generateCourseDescription({
+    required String language,
+    required String level,
+    required String intensity,
+  }) {
+    String text =
+        "This $level $language path is designed for a $intensity pace. ";
+
+    if (level == 'Beginner') {
+      text +=
+          "We'll start with fundamental syntax, variables, and logic flow before moving to data structures. ";
+    } else if (level == 'Intermediate') {
+      text +=
+          "We focus on object-oriented programming, API integration, and asynchronous patterns. ";
+    } else {
+      text +=
+          "Expect deep dives into systems architecture, performance optimization, and advanced patterns. ";
+    }
+
+    if (intensity == 'Intense') {
+      text += "Estimated daily commitment: 2-3 hours.";
+    } else if (intensity == 'Regular') {
+      text += "Estimated daily commitment: 45-60 mins.";
+    } else {
+      text += "Estimated daily commitment: 15-20 mins.";
+    }
+
+    return text;
+  }
+
+  Map<String, dynamic> createCourse({
+    required String language,
+    required String level,
+    required String intensity,
+    bool isEnrolled = true,
+  }) {
+    final newId =
+        'c_${courses.length + 1}_${DateTime.now().millisecondsSinceEpoch}';
+
+    final newCourse = {
+      'id': newId,
+      'title': '$language $level Path',
+      'category': language,
+      'level': level,
+      'intensity': intensity,
+      'difficulty': level == 'Beginner'
+          ? 0.3
+          : (level == 'Intermediate' ? 0.6 : 0.9),
+      'image':
+          'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${language.toLowerCase()}/${language.toLowerCase()}-original.svg',
+      'progress': 0.0,
+      'is_completed': false,
+      'is_enrolled': isEnrolled,
+      'rating': 0.0,
+      'review_count': 0,
+      'description': generateCourseDescription(
+        language: language,
+        level: level,
+        intensity: intensity,
+      ),
+      'accuracy': 0,
+      'topics_completed': 0,
+      'total_topics': 10,
+      'last_activity': 'Just created',
+    };
+
+    courses.add(newCourse);
+    _saveCourses();
+    courses.refresh();
+
+    return newCourse;
   }
 
   Future<Map<String, dynamic>> login(String email, String password) async {
@@ -598,14 +1030,20 @@ class MockApiService extends GetxService {
 
     final accuracy = correctCount / totalCount;
 
-    // XP calculation
+    // XP and Level calculation
+    final stats = Map<String, dynamic>.from(_user['stats']);
+    final oldXP = stats['total_xp'] as int;
+    final oldLevel = (oldXP / 1000).floor();
+
     final baseXP = correctCount * 10;
     final bonusXP = (accuracy * 50).toInt();
     final totalRewardXP = baseXP + bonusXP;
 
-    // Update global user stats
-    final stats = Map<String, dynamic>.from(_user['stats']);
-    stats['total_xp'] = (stats['total_xp'] as int) + totalRewardXP;
+    final newXP = oldXP + totalRewardXP;
+    final newLevel = (newXP / 1000).floor();
+    final didLevelUp = newLevel > oldLevel;
+
+    stats['total_xp'] = newXP;
     _user['stats'] = stats;
     _saveUser();
     _user.refresh();
@@ -633,6 +1071,8 @@ class MockApiService extends GetxService {
       'score': (accuracy * 100).toInt(),
       'xp_earned': totalRewardXP,
       'accuracy': accuracy,
+      'did_level_up': didLevelUp,
+      'new_level': newLevel,
       'ml_analysis': {
         'confidence_score': 0.92,
         'recommendation': recommendationText,
@@ -807,5 +1247,13 @@ class MockApiService extends GetxService {
           'Keep your skills sharp with a quick advanced session on Variables.',
       'prerequisite_met': true,
     };
+  }
+
+  List<Map<String, dynamic>> getAllAchievements() {
+    return achievements.toList();
+  }
+
+  Map<String, int> getHeatmapData() {
+    return Map<String, int>.from(heatmapData);
   }
 }

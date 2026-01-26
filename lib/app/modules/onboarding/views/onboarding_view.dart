@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controllers/onboarding_controller.dart';
 import '../../../core/utils/haptic_utils.dart';
+import '../../../core/widgets/next_components.dart';
 
 class OnboardingView extends GetView<OnboardingController> {
   const OnboardingView({super.key});
@@ -31,11 +32,14 @@ class OnboardingView extends GetView<OnboardingController> {
                 Expanded(
                   child: PageView(
                     controller: controller.pageController,
-                    physics: const NeverScrollableScrollPhysics(),
                     onPageChanged: controller.onPageChanged,
                     children: [
+                      ...controller.tutorialSlides.map(
+                        (slide) => _buildTutorialSlide(context, slide, isDark),
+                      ),
                       _buildLanguageSelection(context, isDark),
                       _buildDifficultySelection(context, isDark),
+                      _buildAssessmentIntro(context, isDark),
                       _buildFinalStep(context, isDark),
                     ],
                   ),
@@ -63,16 +67,26 @@ class OnboardingView extends GetView<OnboardingController> {
                   controller.currentPage.value >= 0,
                   isDark,
                 ),
-                _buildStepConnector(controller.currentPage.value >= 1, isDark),
+                _buildStepDot(controller.currentPage.value == 1, isDark),
+                _buildStepDot(controller.currentPage.value == 2, isDark),
                 _buildStepIndicator(
                   1,
-                  controller.currentPage.value >= 1,
+                  controller.currentPage.value >= 3,
                   isDark,
                 ),
-                _buildStepConnector(controller.currentPage.value >= 2, isDark),
                 _buildStepIndicator(
                   2,
-                  controller.currentPage.value >= 2,
+                  controller.currentPage.value >= 4,
+                  isDark,
+                ),
+                _buildStepIndicator(
+                  3,
+                  controller.currentPage.value >= 5,
+                  isDark,
+                ),
+                _buildStepIndicator(
+                  4,
+                  controller.currentPage.value >= 6,
                   isDark,
                 ),
               ],
@@ -82,12 +96,19 @@ class OnboardingView extends GetView<OnboardingController> {
           Obx(() {
             String title = "";
             String subtitle = "";
-            if (controller.currentPage.value == 0) {
+            final page = controller.currentPage.value;
+            if (page < 3) {
+              title = controller.tutorialSlides[page]['title'] as String;
+              subtitle = controller.tutorialSlides[page]['subtitle'] as String;
+            } else if (page == 3) {
               title = "Choose Your Language";
               subtitle = "Select a programming language to start your journey";
-            } else if (controller.currentPage.value == 1) {
+            } else if (page == 4) {
               title = "Select Difficulty";
-              subtitle = "Choose a level that matches your current experience";
+              subtitle = "Choose a level that matches your experience";
+            } else if (page == 5) {
+              title = "Skill Assessment";
+              subtitle = "Let's see your current proficiency level";
             } else {
               title = "You're All Set!";
               subtitle = "Your personalized learning path is ready";
@@ -96,24 +117,17 @@ class OnboardingView extends GetView<OnboardingController> {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
-                    fontSize: 28.sp,
+                  style: GoogleFonts.outfit(
+                    fontSize: 26.sp,
                     fontWeight: FontWeight.w900,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.lightTextPrimary,
+                    color: isDark ? Colors.white : AppColors.darkBg,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 12.h),
                 Text(
                   subtitle,
-                  style: GoogleFonts.inter(
-                    fontSize: 16.sp,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary,
-                  ),
+                  style: GoogleFonts.inter(fontSize: 16.sp, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -169,14 +183,87 @@ class OnboardingView extends GetView<OnboardingController> {
     );
   }
 
-  Widget _buildStepConnector(bool isActive, bool isDark) {
+  Widget _buildStepDot(bool isActive, bool isDark) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      width: 40.w,
-      height: 2.h,
-      color: isActive
-          ? AppColors.primary
-          : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+      margin: EdgeInsets.symmetric(horizontal: 4.w),
+      width: isActive ? 12.w : 6.w,
+      height: 6.w,
+      decoration: BoxDecoration(
+        color: isActive ? AppColors.primary : Colors.grey.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(3),
+      ),
+    );
+  }
+
+  Widget _buildTutorialSlide(
+    BuildContext context,
+    Map<String, dynamic> slide,
+    bool isDark,
+  ) {
+    return Padding(
+      padding: EdgeInsets.all(24.r),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(40.r),
+            decoration: BoxDecoration(
+              color: (slide['color'] as Color).withOpacity(0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Image.network(
+              slide['image'] as String,
+              width: 200.w,
+              height: 200.w,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Icon(
+                Icons.image_outlined,
+                size: 100.sp,
+                color: slide['color'] as Color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssessmentIntro(BuildContext context, bool isDark) {
+    return Padding(
+      padding: EdgeInsets.all(40.r),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(32.r),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.assignment_turned_in_rounded,
+              size: 80.sp,
+              color: AppColors.primary,
+            ),
+          ),
+          SizedBox(height: 32.h),
+          Text(
+            "Quick Evaluation",
+            style: GoogleFonts.outfit(
+              fontSize: 22.sp,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.darkBg,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            "Complete a 5-minute initial assessment to help our AI customize your starting point.",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(fontSize: 14.sp, color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 
@@ -430,12 +517,14 @@ class OnboardingView extends GetView<OnboardingController> {
             Text(
               "Start Learning Now!",
               style: GoogleFonts.inter(
-                fontSize: 24.sp,
+                fontSize: 20.sp, // Reduced from 24
                 fontWeight: FontWeight.bold,
                 color: isDark
                     ? AppColors.darkTextPrimary
                     : AppColors.lightTextPrimary,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: 12.h),
             Obx(
@@ -462,75 +551,72 @@ class OnboardingView extends GetView<OnboardingController> {
       child: Obx(
         () => Column(
           children: [
-            if (controller.currentPage.value == 2)
+            if (controller.currentPage.value == 6)
               SizedBox(
                 width: double.infinity,
                 height: 60.h,
-                child: ElevatedButton(
+                child: NextButton(
+                  text: "Start My Journey",
                   onPressed: () {
                     HapticUtils.mediumImpact();
                     controller.handleContinue();
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.r),
-                    ),
-                    elevation: 8,
-                    shadowColor: AppColors.primary.withOpacity(0.5),
-                  ),
-                  child: Text(
-                    "Start My Journey",
-                    style: GoogleFonts.inter(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ),
               )
             else
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (controller.currentPage.value > 0)
-                    TextButton(
-                      onPressed: () {
-                        HapticUtils.lightImpact();
-                        controller.pageController.previousPage(
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeInOut,
-                        );
-                        controller.currentPage.value--;
-                      },
-                      child: Text(
-                        "Back",
-                        style: GoogleFonts.inter(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
+                  controller.currentPage.value > 0
+                      ? TextButton(
+                          onPressed: () {
+                            HapticUtils.lightImpact();
+                            controller.pageController.previousPage(
+                              duration: const Duration(milliseconds: 500),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                          child: Text(
+                            "Back",
+                            style: GoogleFonts.inter(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                  Row(
+                    children: [
+                      if (controller.currentPage.value >= 3)
+                        TextButton(
+                          onPressed: () {
+                            HapticUtils.lightImpact();
+                            controller.skip();
+                          },
+                          child: Text(
+                            "Skip",
+                            style: GoogleFonts.inter(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      SizedBox(width: 12.w),
+                      SizedBox(
+                        width: 140.w,
+                        child: NextButton(
+                          text: controller.currentPage.value < 3
+                              ? "Next"
+                              : "Continue",
+                          onPressed: () {
+                            HapticUtils.mediumImpact();
+                            controller.next();
+                          },
                         ),
                       ),
-                    )
-                  else
-                    const SizedBox.shrink(),
-                  TextButton(
-                    onPressed: () {
-                      HapticUtils.lightImpact();
-                      controller.skip();
-                    },
-                    child: Text(
-                      "Skip for now",
-                      style: GoogleFonts.inter(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? AppColors.darkTextSecondary.withOpacity(0.5)
-                            : AppColors.lightTextSecondary.withOpacity(0.5),
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),

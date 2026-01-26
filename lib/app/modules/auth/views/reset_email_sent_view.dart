@@ -37,13 +37,15 @@ class ResetEmailSentView extends GetView<AuthController> {
               Text(
                 'Check Your Email 📩',
                 style: GoogleFonts.outfit(
-                  fontSize: 28.sp,
+                  fontSize: 24.sp,
                   fontWeight: FontWeight.w900,
                   color: isDark
                       ? AppColors.darkTextPrimary
                       : AppColors.lightTextPrimary,
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
               SizedBox(height: 16.h),
               Text(

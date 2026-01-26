@@ -19,6 +19,7 @@ class Course {
   final int totalTopics;
   final double difficulty; // 0.0 - 1.0 (Easy, Medium, Hard)
   final String lastActivity;
+  final String intensity; // Casual, Regular, Intense
   final List<Topic> topics;
 
   Course({
@@ -39,6 +40,7 @@ class Course {
     this.totalTopics = 0,
     this.difficulty = 0.5,
     this.lastActivity = 'Just now',
+    this.intensity = 'Regular',
     this.topics = const [],
   });
 
@@ -68,6 +70,7 @@ class Course {
       totalTopics: json['total_topics'] ?? 0,
       difficulty: (json['difficulty'] as num?)?.toDouble() ?? 0.5,
       lastActivity: json['last_activity'] ?? 'Just now',
+      intensity: json['intensity'] ?? 'Regular',
       topics:
           (json['topics'] as List?)?.map((e) => Topic.fromJson(e)).toList() ??
           [],
@@ -93,6 +96,7 @@ class Course {
       'total_topics': totalTopics,
       'last_activity': lastActivity,
       'difficulty': difficulty,
+      'intensity': intensity,
       'topics': topics.map((v) => v.toJson()).toList(),
     };
   }

@@ -36,12 +36,14 @@ class ForgotPasswordView extends GetView<AuthController> {
               Text(
                 'Forgot Password? 🔑',
                 style: GoogleFonts.outfit(
-                  fontSize: 28.sp,
+                  fontSize: 24.sp,
                   fontWeight: FontWeight.w900,
                   color: isDark
                       ? AppColors.darkTextPrimary
                       : AppColors.lightTextPrimary,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               SizedBox(height: 12.h),
               Text(

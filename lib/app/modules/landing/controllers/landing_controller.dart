@@ -7,8 +7,6 @@ class LandingController extends GetxController {
   }
 
   void navigateToRegister() {
-    Get.toNamed(Routes.auth); // Currently Auth points to Login, user can toggle
-    // Ideally separate routes or arguments
-    Get.toNamed(Routes.register);
+    Get.toNamed(Routes.onboarding);
   }
 }

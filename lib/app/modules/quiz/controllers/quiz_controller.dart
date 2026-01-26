@@ -4,6 +4,7 @@ import '../../../data/models/quiz_model.dart';
 import '../../../data/models/test_result_model.dart';
 import '../../../data/repositories/course_repository.dart';
 import '../../../routes/app_pages.dart';
+import '../../../core/widgets/celebration.dart';
 
 class QuizController extends GetxController {
   late final CourseRepository _courseRepository;
@@ -131,8 +132,16 @@ class QuizController extends GetxController {
 
       final total = questions.length;
 
-      // Mock submit
-      await Future.delayed(const Duration(seconds: 1));
+      // Submit to API/Mock
+      final submissionResult = await _courseRepository.submitQuiz(
+        courseId,
+        score,
+        total,
+      );
+
+      // Level Up Logic
+      final bool didLevelUp = submissionResult['did_level_up'] ?? false;
+      final int newLevel = submissionResult['new_level'] ?? 1;
 
       // Construct TestResult
       final result = TestResult(
@@ -149,6 +158,12 @@ class QuizController extends GetxController {
         mode: isDiagnostic.value ? 'review' : 'practice',
         difficulty: 0.5, // Default
       );
+
+      if (didLevelUp) {
+        LevelUpOverlay.show(newLevel);
+        // Wait for user to dismiss or a brief delay before results
+        await Future.delayed(const Duration(seconds: 1));
+      }
 
       Get.offNamed(Routes.results, arguments: result);
     } catch (e) {

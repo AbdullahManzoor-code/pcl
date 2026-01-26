@@ -8,6 +8,7 @@ import '../../../core/widgets/enhanced_navigation.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../controllers/courses_controller.dart';
 import '../../../data/models/course_model.dart';
+import '../../../data/services/mock_api_service.dart';
 import '../../../routes/app_pages.dart';
 
 class CoursesView extends GetView<CoursesController> {
@@ -47,6 +48,27 @@ class CoursesView extends GetView<CoursesController> {
               }),
             ),
           ],
+        ),
+      ),
+      floatingActionButton: AnimatedTapScale(
+        onTap: () => _showCreatePathSheet(context),
+        child: Container(
+          width: 56.w,
+          height: 56.w,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.primary, Color(0xFF2563EB)],
+            ),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.3),
+                blurRadius: 12,
+                offset: Offset(0, 6.h),
+              ),
+            ],
+          ),
+          child: Icon(Icons.add_rounded, color: Colors.white, size: 28.sp),
         ),
       ),
     );
@@ -401,6 +423,303 @@ class CoursesView extends GetView<CoursesController> {
         );
       }).toList(),
     );
+  }
+
+  void _showCreatePathSheet(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    HapticUtils.mediumImpact();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(32.r),
+            topRight: Radius.circular(32.r),
+          ),
+        ),
+        child: Column(
+          children: [
+            SizedBox(height: 12.h),
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.all(24.r),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Create Learning Path',
+                      style: GoogleFonts.outfit(
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'Customize your AI-generated journey',
+                      style: GoogleFonts.inter(
+                        fontSize: 16.sp,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    SizedBox(height: 32.h),
+
+                    // Language Selection
+                    _buildSectionHeader(
+                      'Select Language',
+                      Icons.language_rounded,
+                    ),
+                    SizedBox(height: 16.h),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 12.w,
+                        mainAxisSpacing: 12.h,
+                        childAspectRatio: 1.1,
+                      ),
+                      itemCount: controller.languages.length,
+                      itemBuilder: (context, index) {
+                        final lang = controller.languages[index];
+                        return _buildLanguageOption(context, lang);
+                      },
+                    ),
+                    SizedBox(height: 32.h),
+
+                    // Difficulty Selection
+                    _buildSectionHeader(
+                      'Target Difficulty',
+                      Icons.speed_rounded,
+                    ),
+                    SizedBox(height: 16.h),
+                    Obx(
+                      () => _buildSegmentedControl(
+                        controller.creationDifficulties,
+                        controller.creationSelectedDifficulty.value,
+                        (val) =>
+                            controller.creationSelectedDifficulty.value = val,
+                      ),
+                    ),
+                    SizedBox(height: 32.h),
+
+                    // Intensity Selection
+                    _buildSectionHeader('Intensity & Pace', Icons.bolt_rounded),
+                    SizedBox(height: 16.h),
+                    Obx(
+                      () => _buildSegmentedControl(
+                        controller.creationIntensities,
+                        controller.creationSelectedIntensity.value,
+                        (val) =>
+                            controller.creationSelectedIntensity.value = val,
+                      ),
+                    ),
+                    SizedBox(height: 32.h),
+
+                    // Path Guidance Card
+                    Container(
+                      padding: EdgeInsets.all(20.r),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: AppColors.primary.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline_rounded,
+                                color: AppColors.primary,
+                                size: 20.sp,
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                'Path Guide',
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 12.h),
+                          Obx(
+                            () => Text(
+                              Get.find<MockApiService>()
+                                  .generateCourseDescription(
+                                    language: controller.selectedLanguage.value,
+                                    level: controller
+                                        .creationSelectedDifficulty
+                                        .value,
+                                    intensity: controller
+                                        .creationSelectedIntensity
+                                        .value,
+                                  ),
+                              style: GoogleFonts.inter(
+                                fontSize: 14.sp,
+                                color: isDark ? Colors.white70 : Colors.black87,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 40.h),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(24.r),
+              child: Obx(
+                () => LoadingButton(
+                  text: 'Generate Path',
+                  isLoading: controller.isCreating.value,
+                  isFullWidth: true,
+                  onPressed: () {
+                    Get.back();
+                    controller.createLearningPath();
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20.sp, color: AppColors.primary),
+        SizedBox(width: 8.w),
+        Text(
+          title,
+          style: GoogleFonts.outfit(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSegmentedControl(
+    List<String> options,
+    String selected,
+    Function(String) onSelect,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(4.r),
+      decoration: BoxDecoration(
+        color: Colors.grey.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Row(
+        children: options.map((opt) {
+          final isSelected = opt == selected;
+          return Expanded(
+            child: AnimatedTapScale(
+              onTap: () {
+                HapticUtils.selectionClick();
+                onSelect(opt);
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12.r),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Center(
+                  child: Text(
+                    opt,
+                    style: GoogleFonts.inter(
+                      fontSize: 13.sp,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
+                      color: isSelected ? AppColors.primary : Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(BuildContext context, Map<String, String> lang) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = _getLanguageColor(lang['name']!);
+
+    return Obx(() {
+      final isSelected = controller.selectedLanguage.value == lang['name'];
+      return AnimatedTapScale(
+        onTap: () {
+          HapticUtils.selectionClick();
+          controller.selectedLanguage.value = lang['name']!;
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(
+              color: isSelected
+                  ? color
+                  : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              width: isSelected ? 2 : 1.5,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(lang['icon']!, style: TextStyle(fontSize: 24.sp)),
+              SizedBox(height: 8.h),
+              Text(
+                lang['name']!,
+                style: GoogleFonts.outfit(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected
+                      ? color
+                      : (isDark ? Colors.white : Colors.black),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   Color _getLanguageColor(String label) {

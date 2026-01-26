@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:pcl/app/routes/app_pages.dart';
 import 'package:pcl/app/data/services/mock_api_service.dart';
 import 'package:pcl/app/services/validation_service.dart';
@@ -58,8 +59,20 @@ class AuthController extends GetxController {
     isLoading.value = true;
     try {
       final authService = Get.find<MockApiService>();
-      await authService.login(emailController.text, passwordController.text);
-      Get.offAllNamed(Routes.onboarding);
+      final userData = await authService.login(
+        emailController.text,
+        passwordController.text,
+      );
+
+      // Handle Persistence
+      final storage = GetStorage();
+      storage.write('isLoggedIn', true);
+      storage.write('userEmail', emailController.text);
+      storage.write('userName', userData['name'] ?? 'User');
+
+      Get.offAllNamed(
+        Routes.main,
+      ); // Changed from onboarding to main for smoother mock flow
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -93,7 +106,14 @@ class AuthController extends GetxController {
     isGoogleLoading.value = true;
     try {
       final authService = Get.find<MockApiService>();
-      await authService.socialLogin('google');
+      final userData = await authService.socialLogin('google');
+
+      // Save user data
+      final storage = GetStorage();
+      storage.write('isLoggedIn', true);
+      storage.write('userEmail', userData['email'] ?? 'user@example.com');
+      storage.write('userName', userData['name'] ?? 'User');
+
       Get.offAllNamed(Routes.main);
     } catch (e) {
       Get.snackbar(
@@ -135,7 +155,16 @@ class AuthController extends GetxController {
     isLoading.value = false;
 
     // Mock Success
-    Get.offAllNamed(Routes.onboarding);
+    final storage = GetStorage();
+    storage.write('isLoggedIn', true);
+    storage.write('userName', nameController.text);
+    storage.write('userEmail', emailController.text);
+
+    // Update user in MockApiService
+    final authService = Get.find<MockApiService>();
+    authService.updateUserName(nameController.text);
+
+    Get.offAllNamed(Routes.assessment);
   }
 
   void sendResetEmail() async {

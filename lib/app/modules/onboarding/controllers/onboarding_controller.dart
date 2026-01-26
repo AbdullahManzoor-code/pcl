@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:pcl/app/core/theme/app_theme.dart';
 import 'package:pcl/app/routes/app_pages.dart';
 
 class OnboardingController extends GetxController {
@@ -10,6 +12,31 @@ class OnboardingController extends GetxController {
   final selectedLanguage = RxnString();
   final selectedDifficulty = RxnString();
 
+  // Onboarding Slides Data
+  final tutorialSlides = [
+    {
+      'title': 'Learn with AI',
+      'subtitle':
+          'Personalized learning paths tailored to your speed and goals.',
+      'image':
+          'https://ouch-cdn2.icons8.com/V-g-x_K-S_m_X_v_o_S_M_z_X.png', // Mock 3D Illustration
+      'color': AppColors.tutorial1,
+    },
+    {
+      'title': 'Master Coding',
+      'subtitle':
+          'Practical exercises and real-world projects to build your portfolio.',
+      'image': 'https://ouch-cdn2.icons8.com/P_V_C-8S_v_r_W_l_j_X_o_M_z_X.png',
+      'color': AppColors.tutorial2,
+    },
+    {
+      'title': 'Track Progress',
+      'subtitle': 'Detailed analytics and insights into your learning journey.',
+      'image': 'https://ouch-cdn2.icons8.com/X-v_o_S_M_z_X_v_o_S_M_z_X.png',
+      'color': AppColors.tutorial3,
+    },
+  ];
+
   final languages = [
     {
       'id': 'python_3',
@@ -17,8 +44,8 @@ class OnboardingController extends GetxController {
       'version': '3.11+',
       'logo': 'python', // Use icons or asset paths
       'description': 'Perfect for beginners, data science, and web development',
-      'color': const Color(0xFF3B82F6), // blue-500
-      'bgColor': const Color(0xFFEFF6FF), // blue-50
+      'color': AppColors.python,
+      'bgColor': AppColors.python.withOpacity(0.05),
     },
     {
       'id': 'javascript_es6',
@@ -26,8 +53,8 @@ class OnboardingController extends GetxController {
       'version': 'ES6+',
       'logo': 'javascript',
       'description': 'Essential for web development and modern applications',
-      'color': const Color(0xFFEAB308), // yellow-500
-      'bgColor': const Color(0xFFFEFCE8), // yellow-50
+      'color': AppColors.javascript,
+      'bgColor': AppColors.javascript.withOpacity(0.05),
     },
     {
       'id': 'java_17',
@@ -35,8 +62,8 @@ class OnboardingController extends GetxController {
       'version': '17 LTS',
       'logo': 'java',
       'description': 'Enterprise applications and Android development',
-      'color': const Color(0xFFEF4444), // red-500
-      'bgColor': const Color(0xFFFEF2F2), // red-50
+      'color': AppColors.java,
+      'bgColor': AppColors.java.withOpacity(0.05),
     },
     {
       'id': 'cpp_20',
@@ -44,8 +71,8 @@ class OnboardingController extends GetxController {
       'version': 'C++20',
       'logo': 'cpp',
       'description': 'High-performance systems and game development',
-      'color': const Color(0xFFA855F7), // purple-500
-      'bgColor': const Color(0xFFFAF5FF), // purple-50
+      'color': AppColors.cpp,
+      'bgColor': AppColors.cpp.withOpacity(0.05),
     },
     {
       'id': 'go_1_21',
@@ -53,8 +80,8 @@ class OnboardingController extends GetxController {
       'version': '1.21+',
       'logo': 'go',
       'description': 'Cloud services, microservices, and concurrent systems',
-      'color': const Color(0xFF06B6D4), // cyan-500
-      'bgColor': const Color(0xFFECFEFF), // cyan-50
+      'color': AppColors.go,
+      'bgColor': AppColors.go.withOpacity(0.05),
     },
     {
       'id': 'typescript',
@@ -62,8 +89,8 @@ class OnboardingController extends GetxController {
       'version': '5.0+',
       'logo': 'typescript',
       'description': 'Type-safe JavaScript for large-scale applications',
-      'color': const Color(0xFF60A5FA), // blue-400
-      'bgColor': const Color(0xFFEFF6FF), // blue-50
+      'color': AppColors.typescript,
+      'bgColor': AppColors.typescript.withOpacity(0.05),
     },
   ];
 
@@ -73,21 +100,21 @@ class OnboardingController extends GetxController {
       'name': 'Beginner',
       'description': 'New to programming or this language',
       'icon': '🌱',
-      'color': const Color(0xFF22C55E), // green-500
+      'color': AppColors.success,
     },
     {
       'id': 'intermediate',
       'name': 'Intermediate',
       'description': 'Comfortable with basic concepts',
       'icon': '📘',
-      'color': const Color(0xFF3B82F6), // blue-500
+      'color': AppColors.primary,
     },
     {
       'id': 'advanced',
       'name': 'Advanced',
       'description': 'Experienced and looking to master',
       'icon': '⚡',
-      'color': const Color(0xFFA855F7), // purple-500
+      'color': AppColors.violet600,
     },
   ];
 
@@ -97,29 +124,24 @@ class OnboardingController extends GetxController {
 
   void selectLanguage(String id) {
     selectedLanguage.value = id;
-    if (currentPage.value == 0) {
-      next();
-    }
   }
 
   void selectDifficulty(String id) {
     selectedDifficulty.value = id;
-    if (currentPage.value == 1) {
-      next();
-    }
   }
 
   void skip() {
+    final storage = GetStorage();
+    storage.write('isFirstLaunch', false);
     Get.offAllNamed(Routes.main);
   }
 
   void next() {
-    if (currentPage.value < 2) {
+    if (currentPage.value < 6) {
       pageController.nextPage(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutQuart,
       );
-      currentPage.value++;
     } else {
       handleContinue();
     }
@@ -127,8 +149,15 @@ class OnboardingController extends GetxController {
 
   void handleContinue() {
     if (selectedLanguage.value != null && selectedDifficulty.value != null) {
-      // In production, sync with API
-      Get.offAllNamed(Routes.main);
+      final storage = GetStorage();
+      // storage.write('isFirstLaunch', false);
+      Get.toNamed(Routes.register);
+    } else {
+      Get.snackbar(
+        'Requirement',
+        'Please select a language and difficulty to proceed.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 }

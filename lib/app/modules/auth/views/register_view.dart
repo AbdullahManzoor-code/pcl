@@ -56,10 +56,12 @@ class RegisterView extends GetView<AuthController> {
                     Text(
                       'Create Account',
                       style: GoogleFonts.outfit(
-                        fontSize: 32.sp,
+                        fontSize: 26.sp,
                         fontWeight: FontWeight.w900,
                         color: isDark ? Colors.white : Colors.black,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: 8.h),
                     Text(

@@ -30,7 +30,7 @@ class LastActivityCard extends StatelessWidget {
     return AnimatedTapScale(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(20.r),
+        padding: EdgeInsets.all(30.r),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -103,9 +103,10 @@ class LastActivityCard extends StatelessWidget {
               topicTitle,
               style: GoogleFonts.inter(
                 fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
                 color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.lightTextSecondary,
+                    ? Colors.white.withOpacity(0.7)
+                    : Colors.black.withOpacity(0.6),
               ),
             ),
             SizedBox(height: 16.h),
@@ -169,15 +170,17 @@ class StreakCelebrationCard extends StatelessWidget {
     return BounceAnimation(
       trigger: showCelebration,
       child: Container(
-        padding: EdgeInsets.all(16.r),
+        padding: EdgeInsets.only(left: 10.r, right: 10.r, bottom: 2.r),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+          gradient: LinearGradient(
+            colors: [Colors.white, Colors.blue.withOpacity(0.9)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(20.r),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFF59E0B).withOpacity(0.3),
+              color: Colors.blue.withOpacity(0.3),
               blurRadius: 20,
               offset: Offset(0, 10.h),
             ),
@@ -215,7 +218,8 @@ class StreakCelebrationCard extends StatelessWidget {
                     message,
                     style: GoogleFonts.inter(
                       fontSize: 12.sp,
-                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
                     ),
                   ),
                 ],

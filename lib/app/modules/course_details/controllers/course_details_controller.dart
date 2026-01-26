@@ -56,8 +56,20 @@ class CourseDetailsController extends GetxController {
   }
 
   void continueLearning() {
-    if (topics.isNotEmpty && topics.first.subTopics.isNotEmpty) {
-      openSubTopic(topics.first.subTopics.first);
+    if (topics.isNotEmpty) {
+      // Find first incomplete topic
+      final nextTopic =
+          topics.firstWhereOrNull((t) => !t.completed) ?? topics.first;
+
+      if (nextTopic.subTopics.isNotEmpty) {
+        // Find first incomplete subtopic
+        final nextSub =
+            nextTopic.subTopics.firstWhereOrNull((s) => !s.completed) ??
+            nextTopic.subTopics.first;
+        openSubTopic(nextSub);
+      } else {
+        Get.snackbar('Notice', 'No lessons available for this topic yet.');
+      }
     } else {
       Get.snackbar('Notice', 'No lessons available for this course yet.');
     }

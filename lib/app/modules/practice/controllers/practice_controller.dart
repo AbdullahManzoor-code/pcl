@@ -81,6 +81,28 @@ class PracticeController extends GetxController {
 
   final questionCounts = [5, 10, 15, 20, 30, 50];
 
+  @override
+  void onInit() {
+    super.onInit();
+    _handleArgs();
+  }
+
+  void _handleArgs() {
+    if (Get.arguments != null && Get.arguments is Map) {
+      final String? conceptName = Get.arguments['concept'];
+      if (conceptName != null) {
+        final concept = concepts.firstWhereOrNull(
+          (c) =>
+              (c['name'] as String).toLowerCase() == conceptName.toLowerCase(),
+        );
+        if (concept != null) {
+          selectedConcept.value = concept['id'] as String;
+          selectedMode.value = 'review'; // Default to review for retakes
+        }
+      }
+    }
+  }
+
   // Configuration State
   final selectedConcept = RxnString();
   final difficulty = 0.5.obs;

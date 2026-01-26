@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../auth/views/login_view.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:pcl/app/routes/app_pages.dart';
 import '../../../data/models/user_model.dart';
-import '../../../data/repositories/auth_repository.dart';
 import '../../../data/services/mock_api_service.dart';
 import '../../../data/services/notification_service.dart';
 import '../../../data/services/theme_service.dart';
@@ -11,10 +11,13 @@ import '../../../core/widgets/next_components.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pcl/app/services/validation_service.dart';
+import '../../../data/models/achievement_model.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../core/utils/haptic_utils.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ProfileController extends GetxController {
   final _validationService = Get.find<ValidationService>();
-  late final AuthRepository _authRepository;
   final ThemeService _themeService = Get.find<ThemeService>();
   final NotificationService _notificationService =
       Get.find<NotificationService>();
@@ -26,6 +29,10 @@ class ProfileController extends GetxController {
   final nameValue = ''.obs;
   final usernameValue = ''.obs;
   final emailValue = ''.obs;
+  final phoneValue = ''.obs;
+  final altEmailValue = ''.obs;
+  final profileImageUrl = Rxn<String>();
+  final achievements = <Achievement>[].obs;
 
   // Password Change Fields
   final currentPasswordController = TextEditingController();
@@ -42,7 +49,6 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _authRepository = AuthRepositoryImpl(Get.find<MockApiService>());
     fetchProfile();
 
     // Sync with notification service
@@ -57,17 +63,192 @@ class ProfileController extends GetxController {
   void fetchProfile() async {
     isLoading.value = true;
     try {
-      final mockUser = await _authRepository.login('mock', 'mock');
-      user.value = mockUser;
+      final service = Get.find<MockApiService>();
+      final userData = service.getUser();
+      user.value = User.fromJson(userData);
+
+      final storage = GetStorage();
+      final storedEmail = storage.read('userEmail');
+      final storedName = storage.read('userName');
 
       // Initialize form fields
-      nameValue.value = mockUser?.name ?? '';
+      nameValue.value = storedName ?? user.value?.name ?? '';
       usernameValue.value = 'mian_user';
-      emailValue.value = mockUser?.email ?? '';
+      emailValue.value = storedEmail ?? user.value?.email ?? '';
+      phoneValue.value = '+1 (555) 000-0000';
+      altEmailValue.value = 'secondary@example.com';
+      profileImageUrl.value = user.value?.profilePic;
+
+      // Fetch Achievements
+      final achData = service.getAllAchievements();
+      achievements.assignAll(
+        achData
+            .map(
+              (e) => Achievement.fromJson(
+                e,
+                icon: _getIconForCategory(e['category']),
+                color: _getColorForCategory(e['category']),
+              ),
+            )
+            .toList(),
+      );
     } catch (e) {
       print('Error fetching profile: $e');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> changeProfilePicture() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+
+      // Show option dialog
+      final source = await Get.dialog<ImageSource>(
+        Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(24.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Choose Profile Picture',
+                  style: GoogleFonts.outfit(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 24.h),
+                ListTile(
+                  leading: Icon(Icons.camera_alt, color: AppColors.primary),
+                  title: Text('Take Photo', style: GoogleFonts.inter()),
+                  onTap: () => Get.back(result: ImageSource.camera),
+                ),
+                ListTile(
+                  leading: Icon(Icons.photo_library, color: AppColors.primary),
+                  title: Text(
+                    'Choose from Gallery',
+                    style: GoogleFonts.inter(),
+                  ),
+                  onTap: () => Get.back(result: ImageSource.gallery),
+                ),
+                if (profileImageUrl.value != null)
+                  ListTile(
+                    leading: Icon(Icons.delete, color: AppColors.error),
+                    title: Text(
+                      'Remove Picture',
+                      style: GoogleFonts.inter(color: AppColors.error),
+                    ),
+                    onTap: () => Get.back(result: null),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      if (source == null && source != false) {
+        // User chose to remove picture
+        final service = Get.find<MockApiService>();
+        service.updateProfilePic(null);
+        profileImageUrl.value = null;
+        fetchProfile();
+
+        HapticUtils.lightImpact();
+        Get.snackbar(
+          'Success',
+          'Profile picture removed',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: AppColors.success.withOpacity(0.1),
+          colorText: AppColors.success,
+        );
+        return;
+      }
+
+      if (source != null) {
+        // Request permissions based on source
+        Permission permission = source == ImageSource.camera 
+            ? Permission.camera 
+            : Permission.photos;
+        
+        PermissionStatus status = await permission.request();
+        
+        if (!status.isGranted) {
+          Get.snackbar(
+            'Permission Denied',
+            'Please grant ${source == ImageSource.camera ? "camera" : "storage"} permission to continue',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: AppColors.error.withOpacity(0.1),
+            colorText: AppColors.error,
+          );
+          return;
+        }
+
+        final XFile? image = await picker.pickImage(
+          source: source,
+          maxWidth: 512,
+          maxHeight: 512,
+          imageQuality: 85,
+        );
+
+        if (image != null) {
+          final service = Get.find<MockApiService>();
+          service.updateProfilePic(image.path);
+          profileImageUrl.value = image.path;
+          fetchProfile();
+
+          HapticUtils.lightImpact();
+          Get.snackbar(
+            'Success',
+            'Profile picture updated successfully',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: AppColors.success.withOpacity(0.1),
+            colorText: AppColors.success,
+          );
+        }
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to update profile picture',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error.withOpacity(0.1),
+        colorText: AppColors.error,
+      );
+    }
+  }
+
+  IconData _getIconForCategory(String category) {
+    switch (category) {
+      case 'streak':
+        return Icons.bolt_rounded;
+      case 'courses':
+        return Icons.auto_stories_rounded;
+      case 'quizzes':
+        return Icons.quiz_rounded;
+      case 'mastery':
+        return Icons.emoji_events_rounded;
+      default:
+        return Icons.star_rounded;
+    }
+  }
+
+  Color _getColorForCategory(String category) {
+    switch (category) {
+      case 'streak':
+        return Colors.orange;
+      case 'courses':
+        return Colors.blue;
+      case 'quizzes':
+        return Colors.purple;
+      case 'mastery':
+        return Colors.amber;
+      default:
+        return AppColors.primary;
     }
   }
 
@@ -89,6 +270,11 @@ class ProfileController extends GetxController {
 
       final currentUser = user.value!;
       user.value = currentUser.copyWith(name: nameValue.value.trim());
+
+      final storage = GetStorage();
+      storage.write('userName', nameValue.value.trim());
+      storage.write('userEmail', emailValue.value.trim());
+      storage.write('userPhone', phoneValue.value.trim());
 
       Get.snackbar(
         'Success',
@@ -160,8 +346,11 @@ class ProfileController extends GetxController {
                     text: 'Logout',
                     color: AppColors.error,
                     onPressed: () {
+                      final storage = GetStorage();
+                      storage.erase(); // Securely remove all user info
+                      // storage.write('isFirstLaunch', false);
                       Get.back();
-                      Get.offAll(() => const LoginView());
+                      Get.offAllNamed(Routes.landing);
                     },
                   ),
                 ),
