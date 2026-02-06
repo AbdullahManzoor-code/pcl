@@ -2,7 +2,7 @@
 
 A modern Flutter application for interactive programming learning, built with **GetX Clean Architecture**.
 
-## 🚀 Features
+##  Features
 
 ### 1️⃣ Authentication
 
