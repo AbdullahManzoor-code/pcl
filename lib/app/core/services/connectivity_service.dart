@@ -11,16 +11,26 @@ class ConnectivityService extends GetxService {
   @override
   void onInit() {
     super.onInit();
+    AppLogger.info(
+      'ConnectivityService.onInit(): starting connectivity monitoring',
+    );
     _initConnectivity();
     _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
   }
 
   Future<void> _initConnectivity() async {
     try {
+      AppLogger.debug(
+        'ConnectivityService._initConnectivity(): checking current network state',
+      );
       final results = await _connectivity.checkConnectivity();
       _updateConnectionStatus(results);
-    } catch (e) {
-      AppLogger.error('Failed to check connectivity', e);
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'ConnectivityService._initConnectivity(): failed to check connectivity',
+        e,
+        stackTrace,
+      );
     }
   }
 
@@ -28,7 +38,14 @@ class ConnectivityService extends GetxService {
     final wasOnline = isOnline.value;
     isOnline.value = results.any((result) => result != ConnectivityResult.none);
 
+    AppLogger.info(
+      'ConnectivityService._updateConnectionStatus(): online=${isOnline.value}, transports=${results.length}',
+    );
+
     if (wasOnline && !isOnline.value) {
+      AppLogger.warning(
+        'ConnectivityService._updateConnectionStatus(): device went offline',
+      );
       Get.snackbar(
         'Offline',
         'You are currently offline. Some features may be limited.',
@@ -39,6 +56,9 @@ class ConnectivityService extends GetxService {
         duration: const Duration(seconds: 3),
       );
     } else if (!wasOnline && isOnline.value) {
+      AppLogger.info(
+        'ConnectivityService._updateConnectionStatus(): connection restored',
+      );
       Get.snackbar(
         'Online',
         'Connection restored!',

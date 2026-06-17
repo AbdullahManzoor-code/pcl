@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pcl/app/routes/app_pages.dart';
+import '../../../core/utils/app_logger.dart';
 
 class LanguageSelectionController extends GetxController {
   final selectedLanguage = ''.obs;
   final selectedLevel = ''.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    AppLogger.info('LanguageSelectionController.onInit(): ready for selection');
+  }
 
   final languages = [
     {'name': 'C++', 'icon': Icons.code},
@@ -16,6 +23,9 @@ class LanguageSelectionController extends GetxController {
   final levels = ['Beginner', 'Intermediate', 'Advanced'];
 
   void selectLanguage(String language) {
+    AppLogger.info(
+      'LanguageSelectionController.selectLanguage(): language=$language',
+    );
     selectedLanguage.value = language;
     // Navigate to Level Selection (same module, different view logic or route)
     // For simplicity, I'll use a boolean to switch view or just Get.to a new view class
@@ -25,6 +35,7 @@ class LanguageSelectionController extends GetxController {
   }
 
   void selectLevel(String level) {
+    AppLogger.info('LanguageSelectionController.selectLevel(): level=$level');
     selectedLevel.value = level;
     Get.offAllNamed(Routes.assessment);
   }

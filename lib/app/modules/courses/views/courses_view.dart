@@ -562,16 +562,11 @@ class CoursesView extends GetView<CoursesController> {
                           SizedBox(height: 12.h),
                           Obx(
                             () => Text(
-                              Get.find<MockApiService>()
-                                  .generateCourseDescription(
-                                    language: controller.selectedLanguage.value,
-                                    level: controller
-                                        .creationSelectedDifficulty
-                                        .value,
-                                    intensity: controller
-                                        .creationSelectedIntensity
-                                        .value,
-                                  ),
+                              controller.getCourseDescription(
+                                controller.selectedLanguage.value,
+                                controller.creationSelectedDifficulty.value,
+                                controller.creationSelectedIntensity.value,
+                              ),
                               style: GoogleFonts.inter(
                                 fontSize: 14.sp,
                                 color: isDark ? Colors.white70 : Colors.black87,

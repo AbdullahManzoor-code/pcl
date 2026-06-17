@@ -338,14 +338,17 @@ class MyCoursesView extends GetView<MyCoursesController> {
                     color: Colors.grey,
                   ),
                   SizedBox(width: 6.w),
-                  Text(
-                    'Last activity: ${course.lastActivity}',
-                    style: GoogleFonts.inter(
-                      fontSize: 11.sp,
-                      color: Colors.grey,
+                  Expanded(
+                    child: Text(
+                      'Last activity: ${course.lastActivity}',
+                      style: GoogleFonts.inter(
+                        fontSize: 11.sp,
+                        color: Colors.grey,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
-                  const Spacer(),
                   Icon(
                     Icons.arrow_forward_rounded,
                     size: 16.sp,

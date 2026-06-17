@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../core/utils/app_logger.dart';
 import '../../../data/models/course_model.dart';
-import '../../../data/repositories/course_repository.dart';
-import '../../../data/services/mock_api_service.dart';
+import '../../../data/services/course_service.dart';
+import '../../../data/services/course_api_adapter.dart';
 
 class MyCoursesController extends GetxController {
-  late final CourseRepository _courseRepository;
+  final _courseService = Get.find<CourseService>();
 
   final enrolledCourses = <Course>[].obs;
   final isLoading = true.obs;
@@ -13,21 +14,28 @@ class MyCoursesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _courseRepository = Get.find<CourseRepository>();
+    AppLogger.info('MyCoursesController.onInit(): loading enrolled courses');
     fetchEnrolledCourses();
-
-    // Listen to global course changes for instant sync
-    final service = Get.find<MockApiService>();
-    ever(service.courses, (_) => fetchEnrolledCourses());
   }
 
   void fetchEnrolledCourses() async {
+    AppLogger.info('MyCoursesController.fetchEnrolledCourses(): start');
     isLoading.value = true;
     try {
-      final courses = _courseRepository.getEnrolledCourses();
+      final portfolio = await _courseService.getUserLanguages();
+      final courses = portfolio.languages
+          .map((stat) => CourseApiAdapter.mapLanguageStatsToCourse(stat))
+          .toList();
       enrolledCourses.assignAll(courses);
-    } catch (e) {
-      print('Error fetching enrolled courses: $e');
+      AppLogger.info(
+        'MyCoursesController.fetchEnrolledCourses(): loaded ${courses.length} courses',
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'MyCoursesController.fetchEnrolledCourses(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar(
         'Error',
         'Failed to load your courses.',
@@ -45,52 +53,38 @@ class MyCoursesController extends GetxController {
   final isCreating = false.obs;
 
   final languages = [
-    {'name': 'Python', 'icon': '🐍'},
-    {'name': 'JavaScript', 'icon': '📜'},
-    {'name': 'C++', 'icon': '⚙️'},
-    {'name': 'Java', 'icon': '☕'},
-    {'name': 'TypeScript', 'icon': '📘'},
-    {'name': 'Go', 'icon': '🐹'},
+    {'name': 'Python', 'id': 'python_3', 'icon': '🐍'},
+    {'name': 'JavaScript', 'id': 'javascript_es6', 'icon': '📜'},
+    {'name': 'C++', 'id': 'cpp_20', 'icon': '⚙️'},
+    {'name': 'Java', 'id': 'java_17', 'icon': '☕'},
+    {'name': 'TypeScript', 'id': 'typescript_5', 'icon': '📘'},
+    {'name': 'Go', 'id': 'go_1_21', 'icon': '🐹'},
   ];
 
   final creationDifficulties = ['Easy', 'Medium', 'Hard'];
   final creationSelectedDifficulty = 'Medium'.obs;
 
   void createLearningPath() async {
+    AppLogger.info('MyCoursesController.createLearningPath(): submitted');
     isCreating.value = true;
     try {
-      await Future.delayed(const Duration(seconds: 1)); // Mock API delay
-
-      final service = Get.find<MockApiService>();
-
-      // Determine next ID
-      final newId = 'c_${service.courses.length + 1}';
-
-      // Create new course model
-      final newCourse = Course(
-        id: newId,
-        title: selectedLanguage.value,
-        level: creationSelectedDifficulty.value,
-        progress: 0.0,
-        totalTopics: 10,
-        topicsCompleted: 0,
-        accuracy: 0,
-        lastActivity: 'Just now',
-        isEnrolled: true,
-        image:
-            'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${selectedLanguage.value.toLowerCase()}/${selectedLanguage.value.toLowerCase()}-original.svg',
-        description:
-            'Master ${selectedLanguage.value} programming from basic to advanced concepts.',
-        category: selectedLanguage.value,
-        topics: [],
+      final langItem = languages.firstWhere(
+        (l) => l['name'] == selectedLanguage.value,
+        orElse: () => languages.first,
       );
 
-      // Add to repository/service
-      service.courses.add(newCourse.toJson());
+      final languageId = langItem['id']!;
+      final difficulty = creationSelectedDifficulty.value.toLowerCase();
 
-      // Refresh courses list
+      // Call API
+      await _courseService.enrollInLanguage(languageId, difficulty);
+
+      // Refresh courses list from API
       fetchEnrolledCourses();
 
+      AppLogger.info(
+        'MyCoursesController.createLearningPath(): success language=${selectedLanguage.value}',
+      );
       Get.snackbar(
         'Success',
         'Started new learning path: ${selectedLanguage.value}',
@@ -99,7 +93,12 @@ class MyCoursesController extends GetxController {
         colorText: const Color(0xFF22C55E),
         icon: const Icon(Icons.check_circle_outline, color: Color(0xFF22C55E)),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'MyCoursesController.createLearningPath(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar(
         'Error',
         'Failed to create learning path. Please try again.',
@@ -108,7 +107,6 @@ class MyCoursesController extends GetxController {
         colorText: const Color(0xFFEF4444),
         icon: const Icon(Icons.error_outline, color: Color(0xFFEF4444)),
       );
-      print('Error creating learning path: $e');
     } finally {
       isCreating.value = false;
     }

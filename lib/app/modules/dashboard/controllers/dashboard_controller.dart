@@ -1,9 +1,12 @@
 import 'package:get/get.dart';
 import 'package:pcl/app/core/theme/app_theme.dart';
 import 'package:pcl/app/data/models/user_model.dart';
+import '../../../core/utils/app_logger.dart';
 import '../../../data/models/course_model.dart';
 import '../../../data/models/analytics_model.dart';
-import '../../../data/repositories/course_repository.dart';
+import '../../../data/services/course_service.dart';
+import '../../../data/services/course_api_adapter.dart';
+import '../../../data/services/dashboard_service.dart';
 import '../../../data/services/mock_api_service.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../../main/controllers/main_controller.dart';
@@ -11,9 +14,11 @@ import '../../../routes/app_pages.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../../data/services/exam_service.dart';
 
 class DashboardController extends GetxController {
-  late final CourseRepository _courseRepository;
+  late final CourseService _courseService;
+  late final DashboardService _dashboardService;
 
   final stats = <String, dynamic>{}.obs;
   final enrolledCourses = <Course>[].obs;
@@ -26,12 +31,12 @@ class DashboardController extends GetxController {
   final heatmapData = <String, int>{}.obs;
 
   final languages = [
-    {'name': 'Python', 'icon': '🐍'},
-    {'name': 'JavaScript', 'icon': '📜'},
-    {'name': 'C++', 'icon': '⚙️'},
-    {'name': 'Java', 'icon': '☕'},
-    {'name': 'TypeScript', 'icon': '📘'},
-    {'name': 'Go', 'icon': '🐹'},
+    {'name': 'Python', 'id': 'python_3', 'icon': '🐍'},
+    {'name': 'JavaScript', 'id': 'javascript_es6', 'icon': '📜'},
+    {'name': 'C++', 'id': 'cpp_20', 'icon': '⚙️'},
+    {'name': 'Java', 'id': 'java_17', 'icon': '☕'},
+    {'name': 'TypeScript', 'id': 'typescript_5', 'icon': '📘'},
+    {'name': 'Go', 'id': 'go_1_21', 'icon': '🐹'},
   ];
 
   final difficulties = ['Easy', 'Medium', 'Hard'];
@@ -39,38 +44,106 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _courseRepository = Get.find<CourseRepository>();
+    AppLogger.info('DashboardController.onInit(): loading dashboard data');
+    _courseService = Get.find<CourseService>();
+    _dashboardService = Get.put(DashboardService()); // Instantiate locally
     fetchData();
-
-    // Listen to global course changes for instant sync
-    final service = Get.find<MockApiService>();
-    ever(service.courses, (_) => fetchData());
   }
 
   void fetchData() async {
+    AppLogger.info('DashboardController.fetchData(): start');
+    isLoading.value = true;
     try {
-      final service = Get.find<MockApiService>();
+      final mockService = Get.find<MockApiService>();
+      final examService = Get.find<ExamService>();
 
-      // Get user data from API service
-      final userData = service.getUser();
+      // Get user data from mock API service (until User Service is built)
+      final userData = mockService.getUser();
       user.value = User.fromJson(userData);
+      AppLogger.debug(
+        'DashboardController.fetchData(): user loaded id=${user.value.id}',
+      );
 
-      stats.assignAll(service.getUserStats());
+      // Calculate real stats from exam history
+      try {
+        final historyRes = await examService.getExamHistory(limit: 100);
+        int totalExams = historyRes.sessions.length;
+        double sumAccuracy = 0;
+        for (var s in historyRes.sessions) {
+          sumAccuracy += s.overallScore;
+        }
+        int avgAccuracy = totalExams > 0
+            ? ((sumAccuracy / totalExams) * 100).toInt()
+            : 0;
 
-      enrolledCourses.value = _courseRepository.getEnrolledCourses();
-      completedCourses.value = _courseRepository.getCompletedCourses();
-      recommendedCourses.value = _courseRepository.getRecommendedCourses();
-
-      if (service.lastEvaluation.isNotEmpty) {
-        aiEvaluation.assignAll(service.lastEvaluation);
+        stats.assignAll({
+          'exams_completed': totalExams,
+          'accuracy': '$avgAccuracy%',
+          'current_streak': 0, // Fallback streak
+        });
+        AppLogger.info(
+          'DashboardController.fetchData(): exam history loaded sessions=$totalExams',
+        );
+      } catch (_) {
+        AppLogger.warning(
+          'DashboardController.fetchData(): exam history unavailable, using mock stats',
+        );
+        stats.assignAll(mockService.getUserStats());
       }
 
-      final recommendationData = service.getAIRecommendation('python');
-      recommendedTopic.value = RecommendedTopic.fromJson(recommendationData);
+      // Fetch enrolled courses via Real API
+      final portfolio = await _courseService.getUserLanguages();
+      final courses = portfolio.languages
+          .map((stat) => CourseApiAdapter.mapLanguageStatsToCourse(stat))
+          .toList();
+      enrolledCourses.assignAll(courses);
+      AppLogger.info(
+        'DashboardController.fetchData(): enrolled courses=${courses.length}',
+      );
 
-      heatmapData.assignAll(service.getHeatmapData());
-    } catch (e) {
-      print('Error fetching dashboard data: $e');
+      // Set dummy completed/recommended until endpoints exist
+      completedCourses.assignAll(courses.where((c) => c.isCompleted).toList());
+      recommendedCourses.assignAll(
+        [],
+      ); // Can be fetched from getCurriculum later
+
+      // Fetch dashboard summary for the first enrolled language (or python_3 as fallback)
+      final activeLangId = portfolio.languages.isNotEmpty
+          ? portfolio.languages.first.languageId
+          : 'python_3';
+
+      try {
+        final summary = await _dashboardService.getDashboardSummary(
+          activeLangId,
+        );
+        recommendedTopic.value = summary.recommendation;
+        AppLogger.info(
+          'DashboardController.fetchData(): dashboard summary loaded languageId=$activeLangId',
+        );
+
+        // Mock heatmap data for UI consistency until backend supports session heatmap API
+        heatmapData.assignAll(mockService.getHeatmapData());
+      } catch (e, stackTrace) {
+        AppLogger.warning(
+          'DashboardController.fetchData(): dashboard summary fallback for languageId=$activeLangId',
+          e,
+          stackTrace,
+        );
+        // Fallback to mock for new users
+        final recommendationData = mockService.getAIRecommendation('python');
+        recommendedTopic.value = RecommendedTopic.fromJson(recommendationData);
+        heatmapData.assignAll(mockService.getHeatmapData());
+      }
+
+      if (mockService.lastEvaluation.isNotEmpty) {
+        aiEvaluation.assignAll(mockService.lastEvaluation);
+      }
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'DashboardController.fetchData(): failed to load dashboard data',
+        e,
+        stackTrace,
+      );
       Get.snackbar(
         'Error',
         'Could not load your dashboard data. Please try again.',
@@ -84,9 +157,13 @@ class DashboardController extends GetxController {
   }
 
   void navigateToRecommendation() {
+    AppLogger.info('DashboardController.navigateToRecommendation(): tapped');
     try {
       final rec = recommendedTopic.value;
       if (rec == null) {
+        AppLogger.warning(
+          'DashboardController.navigateToRecommendation(): no recommendation available',
+        );
         Get.snackbar(
           'Info',
           'No recommendation available at the moment.',
@@ -101,13 +178,17 @@ class DashboardController extends GetxController {
         arguments: {
           'conceptId': rec.conceptId,
           'conceptName': rec.conceptName,
-          'difficulty': 0.7, // Set slightly higher for retake
+          'difficulty': rec.targetDifficulty,
           'numQuestions': 10,
           'mode': 'exam', // Encourage testing
         },
       );
-    } catch (e) {
-      print('Error navigating to recommendation: $e');
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'DashboardController.navigateToRecommendation(): navigation failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar(
         'Error',
         'Could not navigate to practice. Please try again.',
@@ -119,22 +200,50 @@ class DashboardController extends GetxController {
   }
 
   void openCourse(Course course) {
+    AppLogger.info('DashboardController.openCourse(): courseId=${course.id}');
     // ALWAYS use the Map format for consistency across the app
     Get.toNamed(Routes.courseDetails, arguments: {'course': course});
   }
 
   void continueLearning(Course course) {
+    AppLogger.info(
+      'DashboardController.continueLearning(): courseId=${course.id}',
+    );
     openCourse(course);
   }
 
-  void goToMyCourses() => Get.toNamed(Routes.myCourses);
-  void goToAllCourses() => Get.toNamed(Routes.courses);
-  void goToNotifications() => Get.toNamed(Routes.notifications);
-  void goToProfile() => Get.toNamed(Routes.profile);
-  void goToPractice() => Get.toNamed(Routes.practice);
-  void goToAnalytics() => Get.toNamed(Routes.analytics);
+  void goToMyCourses() {
+    AppLogger.info('DashboardController.goToMyCourses(): tapped');
+    Get.toNamed(Routes.myCourses);
+  }
+
+  void goToAllCourses() {
+    AppLogger.info('DashboardController.goToAllCourses(): tapped');
+    Get.toNamed(Routes.courses);
+  }
+
+  void goToNotifications() {
+    AppLogger.info('DashboardController.goToNotifications(): tapped');
+    Get.toNamed(Routes.notifications);
+  }
+
+  void goToProfile() {
+    AppLogger.info('DashboardController.goToProfile(): tapped');
+    Get.toNamed(Routes.profile);
+  }
+
+  void goToPractice() {
+    AppLogger.info('DashboardController.goToPractice(): tapped');
+    Get.toNamed(Routes.practice);
+  }
+
+  void goToAnalytics() {
+    AppLogger.info('DashboardController.goToAnalytics(): tapped');
+    Get.toNamed(Routes.analytics);
+  }
 
   void goToAnalyticsTab() {
+    AppLogger.info('DashboardController.goToAnalyticsTab(): switching tab');
     HapticUtils.mediumImpact();
     Get.find<MainController>().changePage(
       4,
@@ -142,6 +251,7 @@ class DashboardController extends GetxController {
   }
 
   Future<void> changeProfilePicture() async {
+    AppLogger.info('DashboardController.changeProfilePicture(): tapped');
     try {
       final ImagePicker picker = ImagePicker();
 
@@ -190,6 +300,9 @@ class DashboardController extends GetxController {
 
       if (source == null && source != false) {
         // User chose to remove picture
+        AppLogger.info(
+          'DashboardController.changeProfilePicture(): removing picture',
+        );
         final service = Get.find<MockApiService>();
         service.updateProfilePic(null);
         fetchData();
@@ -205,13 +318,16 @@ class DashboardController extends GetxController {
 
       if (source != null) {
         // Request permissions based on source
-        Permission permission = source == ImageSource.camera 
-            ? Permission.camera 
+        Permission permission = source == ImageSource.camera
+            ? Permission.camera
             : Permission.photos;
-        
+
         PermissionStatus status = await permission.request();
-        
+
         if (!status.isGranted) {
+          AppLogger.warning(
+            'DashboardController.changeProfilePicture(): permission denied source=$source',
+          );
           Get.snackbar(
             'Permission Denied',
             'Please grant ${source == ImageSource.camera ? "camera" : "storage"} permission to continue',
@@ -230,6 +346,9 @@ class DashboardController extends GetxController {
         );
 
         if (image != null) {
+          AppLogger.info(
+            'DashboardController.changeProfilePicture(): image selected path=${image.path}',
+          );
           final service = Get.find<MockApiService>();
           service.updateProfilePic(image.path);
           fetchData();
@@ -244,8 +363,12 @@ class DashboardController extends GetxController {
           );
         }
       }
-    } catch (e) {
-      print('Error picking image: $e');
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'DashboardController.changeProfilePicture(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar(
         'Error',
         'Failed to update profile picture',

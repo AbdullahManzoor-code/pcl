@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import '../../../data/models/course_model.dart';
-import '../../../data/repositories/course_repository.dart';
-import '../../../data/services/mock_api_service.dart';
+import '../../../data/services/course_service.dart';
+import '../../../data/services/course_api_adapter.dart';
 import '../../../routes/app_pages.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/haptic_utils.dart';
@@ -9,7 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class CoursesController extends GetxController {
-  late final CourseRepository _courseRepository;
+  final _courseService = Get.find<CourseService>();
 
   final courses = <Course>[].obs;
   final isLoading = true.obs;
@@ -29,12 +29,12 @@ class CoursesController extends GetxController {
   final isCreating = false.obs;
 
   final languages = [
-    {'name': 'Python', 'icon': '🐍'},
-    {'name': 'JavaScript', 'icon': '📜'},
-    {'name': 'C++', 'icon': '⚙️'},
-    {'name': 'Java', 'icon': '☕'},
-    {'name': 'TypeScript', 'icon': '📘'},
-    {'name': 'Go', 'icon': '🐹'},
+    {'name': 'Python', 'id': 'python_3', 'icon': '🐍'},
+    {'name': 'JavaScript', 'id': 'javascript_es6', 'icon': '📜'},
+    {'name': 'C++', 'id': 'cpp_20', 'icon': '⚙️'},
+    {'name': 'Java', 'id': 'java_17', 'icon': '☕'},
+    {'name': 'TypeScript', 'id': 'typescript_5', 'icon': '📘'},
+    {'name': 'Go', 'id': 'go_1_21', 'icon': '🐹'},
   ];
 
   final creationDifficulties = ['Beginner', 'Intermediate', 'Advanced'];
@@ -44,16 +44,18 @@ class CoursesController extends GetxController {
   final creationSelectedIntensity = 'Regular'.obs;
 
   void createLearningPath() async {
+    AppLogger.info('CoursesController.createLearningPath(): submitted');
     isCreating.value = true;
     try {
-      await Future.delayed(const Duration(seconds: 1)); // Mock API delay
-
-      final service = Get.find<MockApiService>();
-      service.createCourse(
-        language: selectedLanguage.value,
-        level: creationSelectedDifficulty.value,
-        intensity: creationSelectedIntensity.value,
+      final langItem = languages.firstWhere(
+        (l) => l['name'] == selectedLanguage.value,
+        orElse: () => languages.first,
       );
+
+      final languageId = langItem['id']!;
+      final difficulty = creationSelectedDifficulty.value.toLowerCase();
+
+      await _courseService.enrollInLanguage(languageId, difficulty);
 
       // Refresh courses list
       fetchCourses();
@@ -66,7 +68,10 @@ class CoursesController extends GetxController {
         colorText: AppColors.success,
         icon: const Icon(Icons.check_circle_outline, color: AppColors.success),
       );
-    } catch (e) {
+      AppLogger.info(
+        'CoursesController.createLearningPath(): success language=${selectedLanguage.value}',
+      );
+    } catch (e, stackTrace) {
       Get.snackbar(
         'Error',
         'Failed to create learning path. Please try again.',
@@ -75,7 +80,11 @@ class CoursesController extends GetxController {
         colorText: AppColors.error,
         icon: const Icon(Icons.error_outline, color: AppColors.error),
       );
-      AppLogger.error('Error creating learning path: $e');
+      AppLogger.error(
+        'CoursesController.createLearningPath(): failed',
+        e,
+        stackTrace,
+      );
     } finally {
       isCreating.value = false;
     }
@@ -121,15 +130,20 @@ class CoursesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // In a real app, inject this properly
-    _courseRepository = CourseRepositoryImpl(Get.find<MockApiService>());
+    AppLogger.info('CoursesController.onInit(): loading courses');
     fetchCourses();
   }
 
   void fetchCourses() async {
+    AppLogger.info('CoursesController.fetchCourses(): start');
     isLoading.value = true;
     try {
-      final allCourses = _courseRepository.getAllCourses();
+      // For all available courses, fetch curriculum roadmap
+      final curriculums = await _courseService.getCurriculum();
+      final allCourses = curriculums
+          .map((c) => CourseApiAdapter.mapCurriculumToCourse(c))
+          .toList();
+
       courses.assignAll(allCourses);
 
       // Extract unique categories
@@ -138,8 +152,15 @@ class CoursesController extends GetxController {
           .toSet()
           .toList();
       categories.assignAll(['All', ...distinctCategories]);
-    } catch (e) {
-      AppLogger.error('Error fetching courses', e);
+      AppLogger.info(
+        'CoursesController.fetchCourses(): loaded courses=${allCourses.length}',
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'CoursesController.fetchCourses(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar(
         'Error',
         'Failed to load courses. Please try again.',
@@ -151,20 +172,30 @@ class CoursesController extends GetxController {
   }
 
   void toggleView() {
+    AppLogger.debug(
+      'CoursesController.toggleView(): grid=${!isGridView.value}',
+    );
     isGridView.value = !isGridView.value;
     HapticUtils.selectionClick();
   }
 
   void openCourse(Course course) {
+    AppLogger.info('CoursesController.openCourse(): courseId=${course.id}');
     HapticUtils.lightImpact();
     Get.toNamed(Routes.courseDetails, arguments: {'course': course});
   }
 
   void clearFilters() {
+    AppLogger.info('CoursesController.clearFilters(): reset filters');
     searchText.value = '';
     selectedCategory.value = 'All';
     selectedDifficulty.value = 'All';
     sortBy.value = 'Name';
     HapticUtils.mediumImpact();
+  }
+
+  String getCourseDescription(String language, String level, String intensity) {
+    return 'This $level level path will guide you through $language at a $intensity pace. '
+        'You will cover syntax, data structures, algorithms, and real-world projects.';
   }
 }

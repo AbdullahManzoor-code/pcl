@@ -12,6 +12,7 @@ abstract class Routes {
   static const dashboard = _Paths.dashboard;
   static const learning = _Paths.learning;
   static const results = _Paths.results;
+  static const resultHistory = _Paths.resultHistory;
   static const courseDetails = _Paths.courseDetails;
   static const profile = _Paths.profile;
   static const quiz = _Paths.quiz;
@@ -22,6 +23,7 @@ abstract class Routes {
   static const landing = _Paths.landing;
   static const practice = _Paths.practice;
   static const analytics = _Paths.analytics;
+  static const reports = _Paths.reports;
   static const register = _Paths.register;
   static const forgotPassword = _Paths.forgotPassword;
   static const resetEmailSent = _Paths.resetEmailSent;
@@ -44,6 +46,7 @@ abstract class _Paths {
   static const dashboard = '/dashboard';
   static const learning = '/learning';
   static const results = '/results';
+  static const resultHistory = '/result-history';
   static const courseDetails = '/course-details';
   static const quiz = '/quiz';
   static const main = '/main';
@@ -60,4 +63,5 @@ abstract class _Paths {
   static const changePassword = '/change-password';
   static const emailVerification = '/email-verification';
   static const verificationSent = '/verification-sent';
+  static const reports = '/reports';
 }

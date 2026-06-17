@@ -23,10 +23,15 @@ class TopicMastery {
 
   factory TopicMastery.fromJson(Map<String, dynamic> json) {
     return TopicMastery(
-      id: json['id'],
-      name: json['name'],
-      mastery: (json['mastery'] as num).toDouble(),
-      lastPracticed: DateTime.parse(json['last_practiced']),
+      id: json['id'] ?? '',
+      name: (json['name'] ?? '') as String,
+      mastery: (json['mastery'] is num)
+          ? (json['mastery'] as num).toDouble()
+          : 0.0,
+      lastPracticed: json['last_practiced'] != null
+          ? DateTime.tryParse(json['last_practiced'].toString()) ??
+                DateTime.now()
+          : DateTime.now(),
     );
   }
 }

@@ -121,15 +121,16 @@ class HomeSliverAppBar extends StatelessWidget {
                   () => CircleAvatar(
                     radius: 22.r,
                     backgroundColor: AppColors.primary.withOpacity(0.1),
-                    child: Image.network(
-                      controller.user.value.profilePic!.isNotEmpty
-                          ? controller.user.value.profilePic!.toUpperCase()
-                          : 'U',
-                      // style: GoogleFonts.outfit(
-                      //   fontSize: 16.sp,
-                      //   fontWeight: FontWeight.bold,
-                      //   color: AppColors.primary,
-                      // ),
+                    child: Text(
+                      (controller.user.value.email!.isNotEmpty
+                              ? controller.user.value.email![0]
+                              : 'U')
+                          .toUpperCase(),
+                      style: GoogleFonts.outfit(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),

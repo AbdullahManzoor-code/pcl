@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:pcl/app/core/theme/app_theme.dart';
 import 'package:pcl/app/routes/app_pages.dart';
+import '../../../core/utils/app_logger.dart';
 
 class OnboardingController extends GetxController {
   final pageController = PageController();
@@ -119,24 +120,31 @@ class OnboardingController extends GetxController {
   ];
 
   void onPageChanged(int index) {
+    AppLogger.debug('OnboardingController.onPageChanged(): index=$index');
     currentPage.value = index;
   }
 
   void selectLanguage(String id) {
+    AppLogger.info('OnboardingController.selectLanguage(): languageId=$id');
     selectedLanguage.value = id;
   }
 
   void selectDifficulty(String id) {
+    AppLogger.info('OnboardingController.selectDifficulty(): difficulty=$id');
     selectedDifficulty.value = id;
   }
 
   void skip() {
+    AppLogger.warning('OnboardingController.skip(): skipping onboarding');
     final storage = GetStorage();
     storage.write('isFirstLaunch', false);
     Get.offAllNamed(Routes.main);
   }
 
   void next() {
+    AppLogger.debug(
+      'OnboardingController.next(): currentPage=${currentPage.value}',
+    );
     if (currentPage.value < 6) {
       pageController.nextPage(
         duration: const Duration(milliseconds: 600),
@@ -149,10 +157,15 @@ class OnboardingController extends GetxController {
 
   void handleContinue() {
     if (selectedLanguage.value != null && selectedDifficulty.value != null) {
-      final storage = GetStorage();
+      AppLogger.info(
+        'OnboardingController.handleContinue(): language=${selectedLanguage.value}, difficulty=${selectedDifficulty.value}',
+      );
       // storage.write('isFirstLaunch', false);
       Get.toNamed(Routes.register);
     } else {
+      AppLogger.warning(
+        'OnboardingController.handleContinue(): selection incomplete',
+      );
       Get.snackbar(
         'Requirement',
         'Please select a language and difficulty to proceed.',

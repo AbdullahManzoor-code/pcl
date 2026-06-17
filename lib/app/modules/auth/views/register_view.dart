@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pcl/app/core/widgets/advanced_ui.dart';
+import 'package:pcl/app/routes/app_pages.dart';
 import '../controllers/auth_controller.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/auth_components.dart';
@@ -157,9 +158,145 @@ class RegisterView extends GetView<AuthController> {
 
               SizedBox(height: 20.h),
 
-              // Terms & Conditions checkbox
+              // Language selection (optional)
               SlideInAnimation(
                 index: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Preferred Language (Optional)',
+                      style: GoogleFonts.inter(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Obx(
+                      () => Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: DropdownButton<String>(
+                          value: controller.selectedLanguage.value,
+                          hint: Padding(
+                            padding: EdgeInsets.only(left: 16.w),
+                            child: Text('Select a language'),
+                          ),
+                          isExpanded: true,
+                          underline: SizedBox(),
+                          items: [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Padding(
+                                padding: EdgeInsets.only(left: 16.w),
+                                child: Text('None'),
+                              ),
+                            ),
+                            ...AuthController.availableLanguages.map((lang) {
+                              return DropdownMenuItem(
+                                value: lang,
+                                child: Padding(
+                                  padding: EdgeInsets.only(left: 16.w),
+                                  child: Text(lang.replaceAll('_', ' ')),
+                                ),
+                              );
+                            }).toList(),
+                          ],
+                          onChanged: (value) {
+                            controller.selectedLanguage.value = value;
+                          },
+                          dropdownColor: isDark
+                              ? AppColors.darkBg
+                              : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 20.h),
+
+              // Experience level selection (optional)
+              SlideInAnimation(
+                index: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Experience Level (Optional)',
+                      style: GoogleFonts.inter(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Obx(
+                      () => Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: DropdownButton<String>(
+                          value: controller.selectedExperienceLevel.value,
+                          hint: Padding(
+                            padding: EdgeInsets.only(left: 16.w),
+                            child: Text('Select your level'),
+                          ),
+                          isExpanded: true,
+                          underline: SizedBox(),
+                          items: [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Padding(
+                                padding: EdgeInsets.only(left: 16.w),
+                                child: Text('None'),
+                              ),
+                            ),
+                            ...AuthController.availableExperienceLevels.map((
+                              level,
+                            ) {
+                              return DropdownMenuItem(
+                                value: level,
+                                child: Padding(
+                                  padding: EdgeInsets.only(left: 16.w),
+                                  child: Text(level.replaceAll('_', ' ')),
+                                ),
+                              );
+                            }).toList(),
+                          ],
+                          onChanged: (value) {
+                            controller.selectedExperienceLevel.value = value;
+                          },
+                          dropdownColor: isDark
+                              ? AppColors.darkBg
+                              : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 20.h),
+
+              // Terms & Conditions checkbox
+              SlideInAnimation(
+                index: 6,
                 child: Obx(
                   () => Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,7 +373,7 @@ class RegisterView extends GetView<AuthController> {
 
               // Sign Up button
               SlideInAnimation(
-                index: 5,
+                index: 7,
                 child: Obx(
                   () => LoadingButton(
                     text: 'Create Account',
@@ -263,7 +400,7 @@ class RegisterView extends GetView<AuthController> {
 
               // Divider
               SlideInAnimation(
-                index: 6,
+                index: 8,
                 child: Row(
                   children: [
                     Expanded(
@@ -301,7 +438,7 @@ class RegisterView extends GetView<AuthController> {
 
               // Google Sign-Up button
               SlideInAnimation(
-                index: 7,
+                index: 9,
                 child: Obx(
                   () => AnimatedTapScale(
                     onTap: () {
@@ -322,7 +459,7 @@ class RegisterView extends GetView<AuthController> {
 
               // Sign in link
               SlideInAnimation(
-                index: 8,
+                index: 10,
                 child: Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -339,7 +476,7 @@ class RegisterView extends GetView<AuthController> {
                       TextButton(
                         onPressed: () {
                           HapticUtils.lightImpact();
-                          Get.back();
+                          Get.toNamed(Routes.auth);
                         },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,

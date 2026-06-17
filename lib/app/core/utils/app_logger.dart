@@ -4,7 +4,9 @@ import 'package:logger/logger.dart';
 class AppLogger {
   static final Logger _logger = Logger(
     printer: PrettyPrinter(
-      methodCount: 2,
+      // Keep normal logs compact. Stack traces are still shown for error/fatal
+      // when we pass a stackTrace explicitly.
+      methodCount: 0,
       errorMethodCount: 8,
       lineLength: 120,
       colors: true,

@@ -161,11 +161,14 @@ class NextButton extends StatelessWidget {
                     Icon(icon, size: 16),
                     const SizedBox(width: 8),
                   ],
-                  Text(
-                    text,
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14.sp,
+                  Flexible(
+                    child: Text(
+                      text,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14.sp,
+                      ),
                     ),
                   ),
                 ],
@@ -184,6 +187,7 @@ class NextInput extends StatelessWidget {
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
   final ValueChanged<String>? onChanged;
+  final int maxLines;
 
   const NextInput({
     super.key,
@@ -195,6 +199,7 @@ class NextInput extends StatelessWidget {
     this.keyboardType,
     this.validator,
     this.onChanged,
+    this.maxLines = 1,
   });
 
   @override
@@ -220,6 +225,7 @@ class NextInput extends StatelessWidget {
           keyboardType: keyboardType,
           validator: validator,
           onChanged: onChanged,
+          maxLines: obscureText ? 1 : maxLines,
           style: GoogleFonts.inter(
             fontSize: 14.sp,
             color: isDark ? Colors.white : Colors.black,

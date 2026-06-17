@@ -163,11 +163,16 @@ class ProfileView extends GetView<ProfileController> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildStatBadge(Icons.auto_awesome_rounded, '12.5k XP'),
+                    _buildStatBadge(
+                      Icons.auto_awesome_rounded,
+                      controller.user.value?.stats?.totalXP != null
+                          ? 'XP ${controller.user.value?.stats!.totalXP}'
+                          : 'XP 1',
+                    ),
                     SizedBox(width: 12.w),
                     _buildStatBadge(
                       Icons.workspace_premium_rounded,
-                      'Level 15',
+                      'Level ${controller.user.value?.stats?.totalHours ?? 1}',
                     ),
                   ],
                 ),

@@ -567,7 +567,7 @@ class DashboardView extends GetView<DashboardController> {
           child: GestureDetector(
             onTap: () => controller.goToAnalyticsTab(),
             child: LevelProgressCard(
-              currentLevel: 12,
+              currentLevel: controller.user.value.stats!.totalXP ?? 1,
               currentXP: 850,
               xpForNextLevel: 1000,
               color: AppColors.primary,

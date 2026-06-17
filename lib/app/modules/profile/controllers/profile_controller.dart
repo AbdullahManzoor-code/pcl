@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:pcl/app/routes/app_pages.dart';
+import '../../../core/utils/app_logger.dart';
 import '../../../data/models/user_model.dart';
+import '../../../data/services/auth_service.dart';
 import '../../../data/services/mock_api_service.dart';
 import '../../../data/services/notification_service.dart';
 import '../../../data/services/theme_service.dart';
@@ -21,6 +23,7 @@ class ProfileController extends GetxController {
   final ThemeService _themeService = Get.find<ThemeService>();
   final NotificationService _notificationService =
       Get.find<NotificationService>();
+  final AuthService _authService = Get.find<AuthService>();
 
   final user = Rxn<User>();
   final isLoading = true.obs;
@@ -49,6 +52,7 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    AppLogger.info('ProfileController.onInit(): loading profile');
     fetchProfile();
 
     // Sync with notification service
@@ -56,31 +60,39 @@ class ProfileController extends GetxController {
 
     // Listen to changes and update service
     emailNotifications.listen((val) {
+      AppLogger.info(
+        'ProfileController.onInit(): notification preference changed value=$val',
+      );
       _notificationService.toggleNotifications(val);
     });
   }
 
   void fetchProfile() async {
+    AppLogger.info('ProfileController.fetchProfile(): start');
     isLoading.value = true;
     try {
-      final service = Get.find<MockApiService>();
-      final userData = service.getUser();
-      user.value = User.fromJson(userData);
+      // Fetch user from real API
+      final realUser = await _authService.getMe();
+      user.value = realUser;
+      AppLogger.debug(
+        'ProfileController.fetchProfile(): user loaded email=${realUser.email}${user.value?.name != null ? ' name=${user.value!.name}' : ''}',
+      );
 
       final storage = GetStorage();
-      final storedEmail = storage.read('userEmail');
-      final storedName = storage.read('userName');
+      final storedName = storage.read('userName') ?? 'Mian'; // Fallback
+      final storedPhone = storage.read('userPhone') ?? '+1 (555) 000-0000';
 
       // Initialize form fields
-      nameValue.value = storedName ?? user.value?.name ?? '';
-      usernameValue.value = 'mian_user';
-      emailValue.value = storedEmail ?? user.value?.email ?? '';
-      phoneValue.value = '+1 (555) 000-0000';
+      nameValue.value = storedName;
+      usernameValue.value = realUser.email?.split('@').first ?? 'user';
+      emailValue.value = realUser.email ?? '';
+      phoneValue.value = storedPhone;
       altEmailValue.value = 'secondary@example.com';
-      profileImageUrl.value = user.value?.profilePic;
+      profileImageUrl.value = storage.read('profilePicUrl') ?? null;
 
-      // Fetch Achievements
-      final achData = service.getAllAchievements();
+      // Mock Achievements until backend supports them
+      final mockService = Get.find<MockApiService>();
+      final achData = mockService.getAllAchievements();
       achievements.assignAll(
         achData
             .map(
@@ -92,14 +104,23 @@ class ProfileController extends GetxController {
             )
             .toList(),
       );
-    } catch (e) {
-      print('Error fetching profile: $e');
+      AppLogger.info(
+        'ProfileController.fetchProfile(): achievements=${achievements.length}',
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'ProfileController.fetchProfile(): failed',
+        e,
+        stackTrace,
+      );
+      Get.snackbar('Error', 'Failed to fetch user profile.');
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> changeProfilePicture() async {
+    AppLogger.info('ProfileController.changeProfilePicture(): tapped');
     try {
       final ImagePicker picker = ImagePicker();
 
@@ -152,6 +173,9 @@ class ProfileController extends GetxController {
 
       if (source == null && source != false) {
         // User chose to remove picture
+        AppLogger.info(
+          'ProfileController.changeProfilePicture(): removing profile picture',
+        );
         final service = Get.find<MockApiService>();
         service.updateProfilePic(null);
         profileImageUrl.value = null;
@@ -170,13 +194,16 @@ class ProfileController extends GetxController {
 
       if (source != null) {
         // Request permissions based on source
-        Permission permission = source == ImageSource.camera 
-            ? Permission.camera 
+        Permission permission = source == ImageSource.camera
+            ? Permission.camera
             : Permission.photos;
-        
+
         PermissionStatus status = await permission.request();
-        
+
         if (!status.isGranted) {
+          AppLogger.warning(
+            'ProfileController.changeProfilePicture(): permission denied source=$source',
+          );
           Get.snackbar(
             'Permission Denied',
             'Please grant ${source == ImageSource.camera ? "camera" : "storage"} permission to continue',
@@ -195,6 +222,9 @@ class ProfileController extends GetxController {
         );
 
         if (image != null) {
+          AppLogger.info(
+            'ProfileController.changeProfilePicture(): image selected path=${image.path}',
+          );
           final service = Get.find<MockApiService>();
           service.updateProfilePic(image.path);
           profileImageUrl.value = image.path;
@@ -210,8 +240,12 @@ class ProfileController extends GetxController {
           );
         }
       }
-    } catch (e) {
-      print('Error picking image: $e');
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'ProfileController.changeProfilePicture(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar(
         'Error',
         'Failed to update profile picture',
@@ -257,10 +291,12 @@ class ProfileController extends GetxController {
 
     final nameError = _validationService.validateName(nameValue.value.trim());
     if (nameError != null) {
+      AppLogger.warning('ProfileController.updateProfile(): validation failed');
       Get.snackbar('Validation Error', nameError);
       return;
     }
 
+    AppLogger.info('ProfileController.updateProfile(): submitted');
     isLoading.value = true;
     try {
       await Future.delayed(const Duration(milliseconds: 1000)); // Mock delay
@@ -276,13 +312,19 @@ class ProfileController extends GetxController {
       storage.write('userEmail', emailValue.value.trim());
       storage.write('userPhone', phoneValue.value.trim());
 
+      AppLogger.info('ProfileController.updateProfile(): success');
       Get.snackbar(
         'Success',
         'Profile updated successfully',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Get.theme.primaryColor.withOpacity(0.1),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'ProfileController.updateProfile(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar('Error', 'Failed to update profile.');
     } finally {
       isLoading.value = false;
@@ -290,12 +332,14 @@ class ProfileController extends GetxController {
   }
 
   void toggleTheme() {
+    AppLogger.info('ProfileController.toggleTheme(): toggling theme');
     _themeService.changeThemeMode(!_themeService.isDarkMode());
   }
 
   bool get isDarkMode => _themeService.isDarkMode();
 
   void logout() {
+    AppLogger.info('ProfileController.logout(): opening confirmation sheet');
     Get.bottomSheet(
       Container(
         padding: EdgeInsets.all(24.r),
@@ -346,6 +390,9 @@ class ProfileController extends GetxController {
                     text: 'Logout',
                     color: AppColors.error,
                     onPressed: () {
+                      AppLogger.warning(
+                        'ProfileController.logout(): confirmed',
+                      );
                       final storage = GetStorage();
                       storage.erase(); // Securely remove all user info
                       // storage.write('isFirstLaunch', false);
@@ -374,13 +421,20 @@ class ProfileController extends GetxController {
     );
 
     if (newPassError != null || confirmError != null) {
+      AppLogger.warning(
+        'ProfileController.changePassword(): validation failed',
+      );
       Get.snackbar('Validation Error', newPassError ?? confirmError!);
       return;
     }
 
+    AppLogger.info('ProfileController.changePassword(): submitted');
     isChangingPassword.value = true;
     try {
-      await Future.delayed(const Duration(milliseconds: 1500)); // Mock delay
+      await _authService.changePassword(
+        currentPasswordController.text,
+        newPasswordController.text,
+      );
       Get.back(); // Close dialog/view
       Get.snackbar('Success', 'Password changed successfully');
 
@@ -388,8 +442,16 @@ class ProfileController extends GetxController {
       currentPasswordController.clear();
       newPasswordController.clear();
       confirmNewPasswordController.clear();
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to change password');
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'ProfileController.changePassword(): failed',
+        e,
+        stackTrace,
+      );
+      Get.snackbar(
+        'Error',
+        'Failed to change password. Ensure current password is correct.',
+      );
     } finally {
       isChangingPassword.value = false;
     }
@@ -397,6 +459,7 @@ class ProfileController extends GetxController {
 
   @override
   void onClose() {
+    AppLogger.info('ProfileController.onClose(): disposing controllers');
     currentPasswordController.dispose();
     newPasswordController.dispose();
     confirmNewPasswordController.dispose();

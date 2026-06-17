@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../../core/utils/app_logger.dart';
 import '../../../data/services/mock_api_service.dart';
 import '../../../data/models/analytics_model.dart';
 
@@ -16,10 +17,12 @@ class AnalyticsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    AppLogger.info('AnalyticsController.onInit(): loading analytics');
     fetchAnalytics();
   }
 
   void fetchAnalytics() async {
+    AppLogger.info('AnalyticsController.fetchAnalytics(): start');
     isLoading.value = true;
     try {
       final service = Get.find<MockApiService>();
@@ -37,7 +40,15 @@ class AnalyticsController extends GetxController {
       );
 
       _calculateStats();
-    } catch (e) {
+      AppLogger.info(
+        'AnalyticsController.fetchAnalytics(): mastery=${masteryList.length}, sessions=${sessionList.length}',
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'AnalyticsController.fetchAnalytics(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar('Error', 'Failed to load analytics: $e');
     } finally {
       isLoading.value = false;
@@ -70,6 +81,9 @@ class AnalyticsController extends GetxController {
   }
 
   void practiceAgain(String conceptId, String subTopic) {
+    AppLogger.info(
+      'AnalyticsController.practiceAgain(): conceptId=$conceptId, subTopic=$subTopic',
+    );
     // Navigate back to practice or deep link to specific topic
     Get.snackbar(
       'Practice Again',

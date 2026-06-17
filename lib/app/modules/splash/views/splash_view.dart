@@ -30,8 +30,14 @@ class SplashView extends GetView<SplashController> {
               child: Opacity(
                 opacity: 0.1,
                 child: Image.network(
-                  'https://ouch-cdn2.icons8.com/P_V_C-8S_v_r_W_l_j_X_o_M_z_S_m_X_v_o_S_M_z_X.png', // Mock abstract shape
+                  'https://ouch-cdn2.icons8.com/P_V_C-8S_v_r_W_l_j_X_o_M_z_S_m_X_v_o_S_M_z_X.png',
                   width: 400.w,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 320.sp,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import '../../../routes/app_pages.dart';
+import '../../../core/utils/app_logger.dart';
 
 class PracticeController extends GetxController {
   // 8 Universal Concepts
@@ -84,6 +85,7 @@ class PracticeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    AppLogger.info('PracticeController.onInit(): practice setup loaded');
     _handleArgs();
   }
 
@@ -91,6 +93,9 @@ class PracticeController extends GetxController {
     if (Get.arguments != null && Get.arguments is Map) {
       final String? conceptName = Get.arguments['concept'];
       if (conceptName != null) {
+        AppLogger.info(
+          'PracticeController._handleArgs(): received concept=$conceptName',
+        );
         final concept = concepts.firstWhereOrNull(
           (c) =>
               (c['name'] as String).toLowerCase() == conceptName.toLowerCase(),
@@ -109,10 +114,25 @@ class PracticeController extends GetxController {
   final selectedQuestionCount = 10.obs;
   final selectedMode = 'practice'.obs;
 
-  void selectConcept(String id) => selectedConcept.value = id;
-  void setDifficulty(double val) => difficulty.value = val;
-  void setQuestionCount(int count) => selectedQuestionCount.value = count;
-  void selectMode(String id) => selectedMode.value = id;
+  void selectConcept(String id) {
+    AppLogger.info('PracticeController.selectConcept(): conceptId=$id');
+    selectedConcept.value = id;
+  }
+
+  void setDifficulty(double val) {
+    AppLogger.debug('PracticeController.setDifficulty(): value=$val');
+    difficulty.value = val;
+  }
+
+  void setQuestionCount(int count) {
+    AppLogger.info('PracticeController.setQuestionCount(): count=$count');
+    selectedQuestionCount.value = count;
+  }
+
+  void selectMode(String id) {
+    AppLogger.info('PracticeController.selectMode(): mode=$id');
+    selectedMode.value = id;
+  }
 
   String get difficultyLabel {
     if (difficulty.value <= 0.4) return 'Easy';
@@ -130,6 +150,9 @@ class PracticeController extends GetxController {
 
   void startPractice() {
     if (selectedConcept.value == null) {
+      AppLogger.warning(
+        'PracticeController.startPractice(): blocked, no concept selected',
+      );
       Get.snackbar(
         'Required',
         'Please select a concept to practice',
@@ -140,6 +163,10 @@ class PracticeController extends GetxController {
 
     final concept = concepts.firstWhere(
       (c) => c['id'] == selectedConcept.value,
+    );
+
+    AppLogger.info(
+      'PracticeController.startPractice(): concept=${selectedConcept.value}, mode=${selectedMode.value}, difficulty=${difficulty.value}, questions=${selectedQuestionCount.value}',
     );
 
     Get.toNamed(

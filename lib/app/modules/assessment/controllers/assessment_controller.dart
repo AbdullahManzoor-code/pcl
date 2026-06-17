@@ -1,9 +1,16 @@
 import 'package:get/get.dart';
 import 'package:pcl/app/routes/app_pages.dart';
+import '../../../core/utils/app_logger.dart';
 
 class AssessmentController extends GetxController {
   final currentQuestionIndex = 0.obs;
   final answers = <int, int>{}.obs; // Question Index -> Answer Index
+
+  @override
+  void onInit() {
+    super.onInit();
+    AppLogger.info('AssessmentController.onInit(): assessment started');
+  }
 
   // Dummy Questions Data
   final questions = [
@@ -45,24 +52,39 @@ class AssessmentController extends GetxController {
   ];
 
   void selectAnswer(int questionIndex, int answerIndex) {
+    AppLogger.info(
+      'AssessmentController.selectAnswer(): questionIndex=$questionIndex, answerIndex=$answerIndex',
+    );
     answers[questionIndex] = answerIndex;
   }
 
   void nextQuestion() {
     if (currentQuestionIndex.value < questions.length - 1) {
+      AppLogger.debug(
+        'AssessmentController.nextQuestion(): moving to ${currentQuestionIndex.value + 1}',
+      );
       currentQuestionIndex.value++;
     } else {
+      AppLogger.info(
+        'AssessmentController.nextQuestion(): final question reached, submitting assessment',
+      );
       submitAssessment();
     }
   }
 
   void previousQuestion() {
     if (currentQuestionIndex.value > 0) {
+      AppLogger.debug(
+        'AssessmentController.previousQuestion(): moving to ${currentQuestionIndex.value - 1}',
+      );
       currentQuestionIndex.value--;
     }
   }
 
   void submitAssessment() {
+    AppLogger.info(
+      'AssessmentController.submitAssessment(): calculating score',
+    );
     // Calculate Score
     int correctCount = 0;
     answers.forEach((key, value) {

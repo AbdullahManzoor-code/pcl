@@ -100,4 +100,48 @@ class Course {
       'topics': topics.map((v) => v.toJson()).toList(),
     };
   }
+
+  Course copyWith({
+    String? id,
+    String? title,
+    String? category,
+    String? level,
+    String? image,
+    double? progress,
+    bool? isCompleted,
+    bool? isEnrolled,
+    String? description,
+    double? rating,
+    int? reviewCount,
+    List<Review>? reviews,
+    int? accuracy,
+    int? topicsCompleted,
+    int? totalTopics,
+    double? difficulty,
+    String? lastActivity,
+    String? intensity,
+    List<Topic>? topics,
+  }) {
+    return Course(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      category: category ?? this.category,
+      level: level ?? this.level,
+      image: image ?? this.image,
+      progress: progress ?? this.progress,
+      isCompleted: isCompleted ?? this.isCompleted,
+      isEnrolled: isEnrolled ?? this.isEnrolled,
+      description: description ?? this.description,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      reviews: reviews ?? this.reviews,
+      accuracy: accuracy ?? this.accuracy,
+      topicsCompleted: topicsCompleted ?? this.topicsCompleted,
+      totalTopics: totalTopics ?? this.totalTopics,
+      difficulty: difficulty ?? this.difficulty,
+      lastActivity: lastActivity ?? this.lastActivity,
+      intensity: intensity ?? this.intensity,
+      topics: topics ?? this.topics,
+    );
+  }
 }

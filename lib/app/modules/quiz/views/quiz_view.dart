@@ -8,6 +8,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/next_components.dart';
 import '../../../core/utils/responsive_view.dart';
 import '../../../core/utils/haptic_utils.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../routes/app_pages.dart';
 
 class QuizView extends GetView<QuizController> {
   const QuizView({super.key});
@@ -31,7 +33,7 @@ class QuizView extends GetView<QuizController> {
               return const Center(child: CircularProgressIndicator());
             }
 
-            if (controller.quiz.value == null) {
+            if (controller.questions.isEmpty) {
               return const Center(child: Text('No quiz available'));
             }
 
@@ -88,10 +90,8 @@ class QuizView extends GetView<QuizController> {
         _buildQuestionCard(context, isDark),
         SizedBox(height: 24.h),
         TextButton.icon(
-          onPressed: () => _showQuestionsMap(
-            context,
-            controller.quiz.value!.questions.length,
-          ),
+          onPressed: () =>
+              _showQuestionsMap(context, controller.questions.length),
           icon: Icon(Icons.grid_view_rounded, size: 20.sp),
           label: Text(
             'View All Questions',
@@ -198,7 +198,7 @@ class QuizView extends GetView<QuizController> {
 
   Widget _buildProgress(BuildContext context, bool isDark) {
     final currentQ = controller.currentIndex.value;
-    final totalQ = controller.quiz.value!.questions.length;
+    final totalQ = controller.questions.length;
     final progress = (currentQ + 1) / totalQ;
 
     return Column(
@@ -252,8 +252,8 @@ class QuizView extends GetView<QuizController> {
 
   Widget _buildQuestionCard(BuildContext context, bool isDark) {
     final currentQ = controller.currentIndex.value;
-    final totalQ = controller.quiz.value!.questions.length;
-    final question = controller.quiz.value!.questions[currentQ];
+    final totalQ = controller.questions.length;
+    final question = controller.questions[currentQ];
 
     return NextCard(
       padding: const EdgeInsets.all(0),
@@ -273,13 +273,34 @@ class QuizView extends GetView<QuizController> {
                 topRight: Radius.circular(12.r),
               ),
             ),
-            child: Text(
-              'Question ${currentQ + 1}',
-              style: GoogleFonts.inter(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Question ${currentQ + 1}',
+                    style: GoogleFonts.inter(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    // Navigate to Reports view with current question id
+                    Get.toNamed(
+                      Routes.reports,
+                      arguments: {'questionId': question.id},
+                    );
+                  },
+                  icon: Icon(
+                    Icons.report_problem,
+                    color: Colors.white,
+                    size: 20.sp,
+                  ),
+                  tooltip: 'Report this question',
+                ),
+              ],
             ),
           ),
           Padding(
@@ -287,8 +308,28 @@ class QuizView extends GetView<QuizController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (question.questionData.mediaUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: CachedNetworkImage(
+                      imageUrl: question.questionData.mediaUrl!,
+                      width: double.infinity,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) => Container(
+                        height: 200.h,
+                        color: isDark
+                            ? AppColors.darkSurface
+                            : AppColors.lightDivider,
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) =>
+                          const SizedBox.shrink(),
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                ],
                 Text(
-                  question.question,
+                  question.questionData.questionText,
                   style: GoogleFonts.inter(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.w500,
@@ -297,10 +338,33 @@ class QuizView extends GetView<QuizController> {
                         : AppColors.lightTextPrimary,
                   ),
                 ),
+                if (question.questionData.codeSnippet != null) ...[
+                  SizedBox(height: 16.h),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(16.r),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: SelectableText(
+                      question.questionData.codeSnippet!,
+                      style: GoogleFonts.firaCode(
+                        fontSize: 14.sp,
+                        color: const Color(0xFFE2E8F0),
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
                 SizedBox(height: 32.h),
 
                 // Dynamic Question Content
-                if (question.type == QuestionType.text)
+                if (question.questionData.questionType == 'text' ||
+                    question.questionData.questionType == 'essay' ||
+                    question.questionData.options.isEmpty)
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 20.h),
                     child: NextInput(
@@ -311,11 +375,16 @@ class QuizView extends GetView<QuizController> {
                       ),
                       validator: (val) => null,
                       prefixIcon: Icons.edit_note_rounded,
+                      maxLines: question.questionData.questionType == 'essay'
+                          ? 5
+                          : 1,
                       onChanged: (val) => controller.answers[currentQ] = val,
                     ),
                   )
                 else
-                  ...List.generate(question.options.length, (index) {
+                  ...List.generate(question.questionData.options.length, (
+                    index,
+                  ) {
                     final isSelected = controller.answers[currentQ] == index;
                     return Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
@@ -373,7 +442,7 @@ class QuizView extends GetView<QuizController> {
                               SizedBox(width: 12.w),
                               Expanded(
                                 child: Text(
-                                  question.options[index],
+                                  question.questionData.options[index].text,
                                   style: GoogleFonts.inter(
                                     fontSize: 16.sp,
                                     color: isDark
@@ -455,7 +524,7 @@ class QuizView extends GetView<QuizController> {
               ),
               SizedBox(height: 8.h),
               Text(
-                'You have answered ${controller.answers.length} out of ${controller.quiz.value!.questions.length} questions.',
+                'You have answered ${controller.answers.length} out of ${controller.questions.length} questions.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(color: Colors.grey, fontSize: 14.sp),
               ),
@@ -471,13 +540,19 @@ class QuizView extends GetView<QuizController> {
                   ),
                   SizedBox(width: 16.w),
                   Expanded(
-                    child: NextButton(
-                      text: 'Submit',
-                      onPressed: () {
-                        Get.back();
-                        controller.submitQuiz();
-                      },
-                      color: AppColors.primary,
+                    child: Obx(
+                      () => NextButton(
+                        text: 'Submit',
+                        onPressed:
+                            controller.answers.length <
+                                controller.minSubmitQuestions
+                            ? null
+                            : () {
+                                Get.back();
+                                controller.submitQuiz();
+                              },
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ],

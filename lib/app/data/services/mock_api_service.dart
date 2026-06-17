@@ -1003,7 +1003,74 @@ class MockApiService extends GetxService {
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     await Future.delayed(const Duration(seconds: 1));
-    return _user;
+
+    // Return mock data with Real API response structure for compatibility
+    return {
+      // Real API fields
+      'user_id': 'mock-user-id-123',
+      'access_token': 'mock-jwt-token-${DateTime.now().millisecondsSinceEpoch}',
+      'token_type': 'bearer',
+      'is_admin': false,
+      'status': 'active',
+      'last_active_language': 'python_3',
+      // Mock fields (for extended data)
+      'name': _user['name'],
+      'email': email,
+      'profile_pic': _user['profile_pic'],
+      'bio': _user['bio'],
+      'stats': _user['stats'],
+    };
+  }
+
+  /// Mock implementation of /auth/me endpoint
+  Future<Map<String, dynamic>> getMe() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    return {
+      'id': 'mock-user-id-123',
+      'email': _user['email'],
+      'last_active_language': 'python_3',
+      'total_exams_taken': 5,
+      'created_at': DateTime.now()
+          .subtract(const Duration(days: 30))
+          .toIso8601String(),
+    };
+  }
+
+  /// Mock implementation of /auth/register endpoint
+  Future<Map<String, dynamic>> register(
+    String email,
+    String password, {
+    String? languageId,
+    String? experienceLevel,
+  }) async {
+    await Future.delayed(const Duration(seconds: 1));
+
+    final newUser = {
+      'name': email.split('@')[0],
+      'email': email,
+      'profile_pic': null,
+      'bio': '',
+      'stats': {
+        'consecutive_days': 0,
+        'total_hours': 0,
+        'completed_courses': 0,
+        'total_xp': 0,
+        'today_points': 0,
+        'today_minutes': 0,
+      },
+    };
+
+    _user.assignAll(newUser);
+    _saveUser();
+
+    return {
+      'user_id': 'mock-user-id-${DateTime.now().millisecondsSinceEpoch}',
+      'access_token': 'mock-jwt-token-${DateTime.now().millisecondsSinceEpoch}',
+      'token_type': 'bearer',
+      'message': 'Registration successful',
+      'starting_topic': languageId ?? 'python_3',
+      'experience_level': experienceLevel ?? 'beginner',
+    };
   }
 
   Future<Map<String, dynamic>> socialLogin(String provider) async {

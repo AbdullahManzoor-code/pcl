@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/app_logger.dart';
 
 class LearningController extends GetxController {
   final topic = <String, dynamic>{}.obs;
@@ -55,15 +56,22 @@ This simple line of code outputs text to the screen.
     if (Get.arguments != null) {
       topic.value = Get.arguments as Map<String, dynamic>;
     }
+    AppLogger.info(
+      'LearningController.onInit(): topic=${topic['name'] ?? 'unknown'}',
+    );
   }
 
   void startQuiz() {
+    AppLogger.info('LearningController.startQuiz(): tapped');
     isQuizMode.value = true;
     quizQuestionIndex.value = 0;
     quizScore.value = 0;
   }
 
   void answerQuiz(int index) {
+    AppLogger.debug(
+      'LearningController.answerQuiz(): selected=$index questionIndex=${quizQuestionIndex.value}',
+    );
     if (quizQuestions[quizQuestionIndex.value]['correctAnswer'] == index) {
       quizScore.value++;
     }
@@ -76,6 +84,9 @@ This simple line of code outputs text to the screen.
   }
 
   void finishQuiz() {
+    AppLogger.info(
+      'LearningController.finishQuiz(): score=${quizScore.value}/${quizQuestions.length}',
+    );
     // Determine if passed (e.g., > 50%)
     bool passed = (quizScore.value / quizQuestions.length) >= 0.5;
 
@@ -127,6 +138,9 @@ This simple line of code outputs text to the screen.
               height: 56.h,
               child: ElevatedButton(
                 onPressed: () {
+                  AppLogger.info(
+                    'LearningController.finishQuiz(): result action pressed passed=$passed',
+                  );
                   Get.back(); // Close bottom sheet
                   if (passed) {
                     Get.back(); // Exit learning view

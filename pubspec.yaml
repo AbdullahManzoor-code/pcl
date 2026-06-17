@@ -52,6 +52,8 @@ dependencies:
   connectivity_plus: ^6.0.1
   lottie: ^3.1.0
   image_picker: ^1.0.7
+  http: ^1.1.0
+  flutter_skill: ^0.9.36
 
 dev_dependencies:
   flutter_test:

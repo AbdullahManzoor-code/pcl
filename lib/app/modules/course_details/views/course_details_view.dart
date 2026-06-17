@@ -686,7 +686,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
 
   Widget _buildSelectionChip(String label, IconData icon, bool active) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
+      padding: EdgeInsets.symmetric(vertical: 10.h),
       decoration: BoxDecoration(
         color: active
             ? AppColors.primary.withOpacity(0.05)
@@ -698,6 +698,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
         ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
@@ -708,10 +709,12 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
           Text(
             label,
             style: GoogleFonts.inter(
-              fontSize: 11.sp,
+              fontSize: 10.sp,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
               color: active ? AppColors.primary : Colors.grey,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

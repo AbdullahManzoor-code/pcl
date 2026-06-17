@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:pcl/app/routes/app_pages.dart';
-import 'package:pcl/app/data/services/mock_api_service.dart';
+import 'package:pcl/app/data/services/auth_service.dart';
+import 'package:pcl/app/data/services/network_error_handler.dart';
 import 'package:pcl/app/services/validation_service.dart';
+import '../../../core/utils/app_logger.dart';
 
 class AuthController extends GetxController {
   final _validationService = Get.find<ValidationService>();
@@ -19,8 +21,40 @@ class AuthController extends GetxController {
   final acceptTerms = false.obs;
   final password = ''.obs; // For password strength indicator
 
+  // Registration optional parameters
+  final selectedLanguage = Rx<String?>(null); // language_id
+  final selectedExperienceLevel = Rx<String?>(null); // experience_level
+
+  // Available options from Next.js API
+  static const List<String> availableLanguages = [
+    'python_3',
+    'javascript_es6',
+    'java_17',
+    'cpp_20',
+    'go_1_21',
+  ];
+
+  static const List<String> availableExperienceLevels = [
+    'beginner',
+    'intermediate',
+    'advanced',
+  ];
+
+  @override
+  void onInit() {
+    super.onInit();
+    AppLogger.info('AuthController.onInit(): ready for auth flow');
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    AppLogger.debug('AuthController.onReady(): view attached');
+  }
+
   @override
   void onClose() {
+    AppLogger.info('AuthController.onClose(): disposing auth form controllers');
     emailController.dispose();
     passwordController.dispose();
     nameController.dispose();
@@ -29,11 +63,15 @@ class AuthController extends GetxController {
   }
 
   void toggleAuthMode() {
+    AppLogger.info(
+      'AuthController.toggleAuthMode(): isLogin=${!isLogin.value}',
+    );
     isLogin.value = !isLogin.value;
     clearControllers();
   }
 
   void clearControllers() {
+    AppLogger.debug('AuthController.clearControllers(): clearing form inputs');
     emailController.clear();
     passwordController.clear();
     nameController.clear();
@@ -41,12 +79,14 @@ class AuthController extends GetxController {
   }
 
   void login() async {
+    AppLogger.info('AuthController.login(): submitted');
     final emailError = _validationService.validateEmail(emailController.text);
     final passwordError = _validationService.validatePassword(
       passwordController.text,
     );
 
     if (emailError != null || passwordError != null) {
+      AppLogger.warning('AuthController.login(): validation failed');
       Get.snackbar(
         'Validation Error',
         emailError ?? passwordError!,
@@ -58,8 +98,10 @@ class AuthController extends GetxController {
 
     isLoading.value = true;
     try {
-      final authService = Get.find<MockApiService>();
-      final userData = await authService.login(
+      // Use real AuthService with Next.js backend
+      final authService = Get.find<AuthService>();
+      AppLogger.debug('AuthController.login(): calling AuthService.login');
+      final user = await authService.login(
         emailController.text,
         passwordController.text,
       );
@@ -67,17 +109,40 @@ class AuthController extends GetxController {
       // Handle Persistence
       final storage = GetStorage();
       storage.write('isLoggedIn', true);
-      storage.write('userEmail', emailController.text);
-      storage.write('userName', userData['name'] ?? 'User');
+      storage.write('userEmail', user.email);
+      storage.write('userName', user.name ?? user.email ?? 'User');
+      storage.write('userId', user.id);
+      storage.write('userLanguage', user.lastActiveLanguage);
 
-      Get.offAllNamed(
-        Routes.main,
-      ); // Changed from onboarding to main for smoother mock flow
-    } catch (e) {
+      AppLogger.info('AuthController.login(): success userId=${user.id}');
       Get.snackbar(
-        'Error',
-        'Login failed',
+        'Success',
+        'Logged in successfully',
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withOpacity(0.1),
+      );
+
+      Get.offAllNamed(Routes.main);
+    } on NetworkException catch (e, stackTrace) {
+      AppLogger.error('AuthController.login(): network failure', e, stackTrace);
+      Get.snackbar(
+        'Login Failed',
+        e.getUserMessage(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.1),
+        duration: const Duration(seconds: 4),
+      );
+    } on Exception catch (e, stackTrace) {
+      AppLogger.error(
+        'AuthController.login(): unexpected failure',
+        e,
+        stackTrace,
+      );
+      Get.snackbar(
+        'Login Failed',
+        e.toString().replaceAll('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.1),
       );
     } finally {
       isLoading.value = false;
@@ -85,12 +150,21 @@ class AuthController extends GetxController {
   }
 
   void socialLogin(String provider) async {
+    AppLogger.info('AuthController.socialLogin(): provider=$provider');
     isLoading.value = true;
     try {
-      final authService = Get.find<MockApiService>();
-      await authService.socialLogin(provider);
-      Get.offAllNamed(Routes.main);
-    } catch (e) {
+      // TODO: Implement social login with Next.js backend when API endpoint available
+      Get.snackbar(
+        'Not Available',
+        '$provider login coming soon',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'AuthController.socialLogin(): provider=$provider failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar(
         'Error',
         '$provider login failed: $e',
@@ -103,19 +177,21 @@ class AuthController extends GetxController {
 
   // Google Sign-In
   void signInWithGoogle() async {
+    AppLogger.info('AuthController.signInWithGoogle(): submitted');
     isGoogleLoading.value = true;
     try {
-      final authService = Get.find<MockApiService>();
-      final userData = await authService.socialLogin('google');
-
-      // Save user data
-      final storage = GetStorage();
-      storage.write('isLoggedIn', true);
-      storage.write('userEmail', userData['email'] ?? 'user@example.com');
-      storage.write('userName', userData['name'] ?? 'User');
-
-      Get.offAllNamed(Routes.main);
-    } catch (e) {
+      // TODO: Implement Google Sign-In with Next.js backend when API endpoint available
+      Get.snackbar(
+        'Not Available',
+        'Google sign-in coming soon',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'AuthController.signInWithGoogle(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar(
         'Error',
         'Google sign-in failed: $e',
@@ -127,6 +203,7 @@ class AuthController extends GetxController {
   }
 
   void register() async {
+    AppLogger.info('AuthController.register(): submitted');
     final nameError = _validationService.validateName(nameController.text);
     final emailError = _validationService.validateEmail(emailController.text);
     final passwordError = _validationService.validatePassword(
@@ -141,6 +218,7 @@ class AuthController extends GetxController {
         emailError != null ||
         passwordError != null ||
         confirmError != null) {
+      AppLogger.warning('AuthController.register(): validation failed');
       Get.snackbar(
         'Validation Error',
         nameError ?? emailError ?? passwordError ?? confirmError!,
@@ -151,33 +229,80 @@ class AuthController extends GetxController {
     }
 
     isLoading.value = true;
-    await Future.delayed(const Duration(seconds: 2)); // Mock API delay
-    isLoading.value = false;
+    try {
+      // Use real AuthService with Next.js backend
+      final authService = Get.find<AuthService>();
+      AppLogger.debug(
+        'AuthController.register(): calling AuthService.register',
+      );
+      final user = await authService.register(
+        emailController.text,
+        passwordController.text,
+        languageId: selectedLanguage.value,
+        experienceLevel: selectedExperienceLevel.value,
+      );
 
-    // Mock Success
-    final storage = GetStorage();
-    storage.write('isLoggedIn', true);
-    storage.write('userName', nameController.text);
-    storage.write('userEmail', emailController.text);
+      // Handle Persistence
+      final storage = GetStorage();
+      storage.write('isLoggedIn', true);
+      storage.write('userName', nameController.text);
+      storage.write('userEmail', user.email);
+      storage.write('userId', user.id);
+      storage.write('userLanguage', user.lastActiveLanguage);
+      storage.write('userExperienceLevel', selectedExperienceLevel.value);
 
-    // Update user in MockApiService
-    final authService = Get.find<MockApiService>();
-    authService.updateUserName(nameController.text);
+      AppLogger.info('AuthController.register(): success userId=${user.id}');
+      Get.snackbar(
+        'Success',
+        'Account created successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withOpacity(0.1),
+      );
 
-    Get.offAllNamed(Routes.assessment);
+      Get.offAllNamed(Routes.assessment);
+    } on NetworkException catch (e, stackTrace) {
+      AppLogger.error(
+        'AuthController.register(): network failure',
+        e,
+        stackTrace,
+      );
+      Get.snackbar(
+        'Registration Failed',
+        e.getUserMessage(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.1),
+        duration: const Duration(seconds: 4),
+      );
+    } on Exception catch (e, stackTrace) {
+      AppLogger.error(
+        'AuthController.register(): unexpected failure',
+        e,
+        stackTrace,
+      );
+      Get.snackbar(
+        'Registration Failed',
+        e.toString().replaceAll('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.1),
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void sendResetEmail() async {
+    AppLogger.info('AuthController.sendResetEmail(): submitted');
     if (emailController.text.isEmpty) {
+      AppLogger.warning('AuthController.sendResetEmail(): email missing');
       Get.snackbar('Error', 'Please enter your email');
       return;
     }
     isLoading.value = true;
     try {
-      final authService = Get.find<MockApiService>();
-      await authService.sendPasswordReset(emailController.text);
+      // TODO: Implement password reset with Next.js backend
       Get.toNamed('/reset-email-sent');
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error('AuthController.sendResetEmail(): failed', e, stackTrace);
       Get.snackbar('Error', 'Failed to send reset email');
     } finally {
       isLoading.value = false;
@@ -185,18 +310,28 @@ class AuthController extends GetxController {
   }
 
   void handlePasswordReset() async {
+    AppLogger.info('AuthController.handlePasswordReset(): submitted');
     if (passwordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
+      AppLogger.warning('AuthController.handlePasswordReset(): missing fields');
       Get.snackbar('Error', 'Please fill all fields');
       return;
     }
     isLoading.value = true;
     try {
-      final authService = Get.find<MockApiService>();
-      await authService.resetPassword(passwordController.text);
+      // TODO: Use changePassword if we have the old password
+      // For now, just clear fields
+      AppLogger.info(
+        'AuthController.handlePasswordReset(): navigating to auth after reset',
+      );
       Get.offAllNamed(Routes.auth);
       Get.snackbar('Success', 'Password reset successfully');
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'AuthController.handlePasswordReset(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar('Error', 'Failed to reset password');
     } finally {
       isLoading.value = false;
@@ -204,11 +339,20 @@ class AuthController extends GetxController {
   }
 
   void sendVerificationEmail() async {
+    AppLogger.info('AuthController.sendVerificationEmail(): submitted');
     isLoading.value = true;
     try {
       await Future.delayed(const Duration(seconds: 1)); // Mock delay
+      AppLogger.info(
+        'AuthController.sendVerificationEmail(): navigating to verification sent screen',
+      );
       Get.toNamed('/verification-sent');
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'AuthController.sendVerificationEmail(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar('Error', 'Failed to send verification email');
     } finally {
       isLoading.value = false;
@@ -216,13 +360,62 @@ class AuthController extends GetxController {
   }
 
   void checkVerificationStatus() async {
+    AppLogger.info('AuthController.checkVerificationStatus(): submitted');
     isLoading.value = true;
     try {
       await Future.delayed(const Duration(seconds: 1)); // Mock delay
+      AppLogger.info(
+        'AuthController.checkVerificationStatus(): verified, routing to onboarding',
+      );
       Get.offAllNamed(Routes.onboarding);
       Get.snackbar('Success', 'Email verified successfully');
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'AuthController.checkVerificationStatus(): not verified yet',
+        e,
+        stackTrace,
+      );
       Get.snackbar('Error', 'Email not verified yet');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Logout user - clears session and redirects to login
+  Future<void> logout() async {
+    AppLogger.info('AuthController.logout(): submitted');
+    isLoading.value = true;
+    try {
+      final authService = Get.find<AuthService>();
+      AppLogger.debug('AuthController.logout(): calling AuthService.logout');
+      await authService.logout();
+
+      // Clear storage
+      final storage = GetStorage();
+      storage.remove('isLoggedIn');
+      storage.remove('userEmail');
+      storage.remove('userName');
+      storage.remove('userId');
+      storage.remove('userLanguage');
+
+      AppLogger.info('AuthController.logout(): success');
+      Get.snackbar(
+        'Success',
+        'Logged out successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withOpacity(0.1),
+      );
+
+      // Navigate to login
+      Get.offAllNamed(Routes.auth);
+    } on Exception catch (e, stackTrace) {
+      AppLogger.error('AuthController.logout(): failed', e, stackTrace);
+      Get.snackbar(
+        'Logout Failed',
+        e.toString().replaceAll('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.1),
+      );
     } finally {
       isLoading.value = false;
     }

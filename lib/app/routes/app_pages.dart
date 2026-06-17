@@ -17,6 +17,7 @@ import '../modules/assessment/bindings/assessment_binding.dart';
 import '../modules/assessment/views/assessment_view.dart';
 import '../modules/results/bindings/results_binding.dart';
 import '../modules/results/views/results_view.dart';
+import '../modules/results/views/result_history_view.dart';
 import '../modules/dashboard/bindings/dashboard_binding.dart';
 import '../modules/dashboard/views/dashboard_view.dart';
 import '../modules/learning/bindings/learning_binding.dart';
@@ -44,6 +45,8 @@ import '../modules/practice/bindings/practice_binding.dart';
 import '../modules/practice/views/practice_view.dart';
 import '../modules/analytics/bindings/analytics_binding.dart';
 import '../modules/analytics/views/analytics_view.dart';
+import '../modules/reports/bindings/reports_binding.dart';
+import '../modules/reports/views/reports_view.dart';
 
 part 'app_routes.dart';
 
@@ -83,8 +86,13 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.results,
-      page: () => const ResultsView(),
+      page: () => ResultsView(),
       binding: ResultsBinding(),
+    ),
+    GetPage(
+      name: _Paths.resultHistory,
+      page: () => const ResultHistoryView(),
+      // We are just injecting the controller directly in the view
     ),
     GetPage(
       name: _Paths.assessment,
@@ -150,6 +158,11 @@ class AppPages {
       name: _Paths.analytics,
       page: () => const AnalyticsView(),
       binding: AnalyticsBinding(),
+    ),
+    GetPage(
+      name: _Paths.reports,
+      page: () => const ReportsView(),
+      binding: ReportsBinding(),
     ),
     GetPage(
       name: _Paths.forgotPassword,
