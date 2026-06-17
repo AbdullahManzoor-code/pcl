@@ -1,60 +1,19 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:pcl/app/data/models/course_api_models.dart';
+import 'package:pcl/app/data/services/course_service.dart';
 import '../../../routes/app_pages.dart';
 import '../../../core/utils/app_logger.dart';
 
 class PracticeController extends GetxController {
-  // 8 Universal Concepts
-  final concepts = [
-    {
-      'id': 'UNIV_VAR',
-      'name': 'Variables & Data Types',
-      'icon': Icons.data_array_rounded,
-      'color': [Color(0xFF2563EB), Color(0xFF3B82F6)], // Blue
-    },
-    {
-      'id': 'UNIV_COND',
-      'name': 'Conditionals',
-      'icon': Icons.account_tree_rounded,
-      'color': [Color(0xFF16A34A), Color(0xFF22C55E)], // Green
-    },
-    {
-      'id': 'UNIV_LOOP',
-      'name': 'Loops',
-      'icon': Icons.loop_rounded,
-      'color': [Color(0xFF9333EA), Color(0xFFA855F7)], // Purple
-    },
-    {
-      'id': 'UNIV_FUNC',
-      'name': 'Functions',
-      'icon': Icons.functions_rounded,
-      'color': [Color(0xFFEA580C), Color(0xFFF97316)], // Orange
-    },
-    {
-      'id': 'UNIV_COLL',
-      'name': 'Collections',
-      'icon': Icons.storage_rounded,
-      'color': [Color(0xFFDB2777), Color(0xFFEC4899)], // Pink
-    },
-    {
-      'id': 'UNIV_ERR',
-      'name': 'Error Handling',
-      'icon': Icons.warning_amber_rounded,
-      'color': [Color(0xFFDC2626), Color(0xFFEF4444)], // Red
-    },
-    {
-      'id': 'UNIV_OOP_BASIC',
-      'name': 'OOP Basics',
-      'icon': Icons.layers_rounded,
-      'color': [Color(0xFFCA8A04), Color(0xFFEAB308)], // Yellow
-    },
-    {
-      'id': 'UNIV_OOP_ADV',
-      'name': 'Advanced OOP',
-      'icon': Icons.widgets_rounded,
-      'color': [Color(0xFF4F46E5), Color(0xFF6366F1)], // Indigo
-    },
-  ].obs;
+  final CourseService _courseService = Get.find<CourseService>();
+
+  final availableTopics = <CurriculumTopic>[].obs;
+  final isLoading = true.obs;
+  final selectedTopic = Rxn<CurriculumTopic>();
+  final difficulty = 0.5.obs;
+  final selectedQuestionCount = 10.obs;
+  final selectedMode = 'practice'.obs;
 
   final modes = [
     {
@@ -62,21 +21,18 @@ class PracticeController extends GetxController {
       'name': 'Practice Mode',
       'description': 'Learn with hints and explanations',
       'icon': Icons.track_changes_rounded,
-      'color': Colors.blue,
     },
     {
       'id': 'exam',
       'name': 'Exam Mode',
       'description': 'Test your knowledge under pressure',
       'icon': Icons.bolt_rounded,
-      'color': Colors.red,
     },
     {
       'id': 'review',
       'name': 'Review Mode',
       'description': "Reinforce concepts you've decayed",
       'icon': Icons.refresh_rounded,
-      'color': Colors.green,
     },
   ];
 
@@ -86,37 +42,50 @@ class PracticeController extends GetxController {
   void onInit() {
     super.onInit();
     AppLogger.info('PracticeController.onInit(): practice setup loaded');
-    _handleArgs();
+    fetchAvailableTopics();
+  }
+
+  void fetchAvailableTopics() async {
+    isLoading.value = true;
+    try {
+      final curriculumList = await _courseService.getCurriculum();
+      if (curriculumList.isNotEmpty) {
+        availableTopics.assignAll(curriculumList.first.roadmap);
+      }
+      _handleArgs();
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'PracticeController.fetchAvailableTopics(): failed',
+        e,
+        stackTrace,
+      );
+      Get.snackbar('Error', 'Could not load topics to practice.');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void _handleArgs() {
     if (Get.arguments != null && Get.arguments is Map) {
-      final String? conceptName = Get.arguments['concept'];
-      if (conceptName != null) {
+      final String? conceptId = Get.arguments['conceptId'];
+      if (conceptId != null) {
         AppLogger.info(
-          'PracticeController._handleArgs(): received concept=$conceptName',
+          'PracticeController._handleArgs(): received conceptId=$conceptId',
         );
-        final concept = concepts.firstWhereOrNull(
-          (c) =>
-              (c['name'] as String).toLowerCase() == conceptName.toLowerCase(),
+        final topic = availableTopics.firstWhereOrNull(
+          (t) => t.majorTopicId == conceptId,
         );
-        if (concept != null) {
-          selectedConcept.value = concept['id'] as String;
-          selectedMode.value = 'review'; // Default to review for retakes
+        if (topic != null) {
+          selectedTopic.value = topic;
+          selectedMode.value = Get.arguments['mode'] ?? 'review';
         }
       }
     }
   }
 
-  // Configuration State
-  final selectedConcept = RxnString();
-  final difficulty = 0.5.obs;
-  final selectedQuestionCount = 10.obs;
-  final selectedMode = 'practice'.obs;
-
-  void selectConcept(String id) {
-    AppLogger.info('PracticeController.selectConcept(): conceptId=$id');
-    selectedConcept.value = id;
+  void selectTopic(CurriculumTopic? topic) {
+    AppLogger.info('PracticeController.selectTopic(): topic=${topic?.name}');
+    selectedTopic.value = topic;
   }
 
   void setDifficulty(double val) {
@@ -149,34 +118,29 @@ class PracticeController extends GetxController {
   }
 
   void startPractice() {
-    if (selectedConcept.value == null) {
+    if (selectedTopic.value == null) {
       AppLogger.warning(
-        'PracticeController.startPractice(): blocked, no concept selected',
+        'PracticeController.startPractice(): blocked, no topic selected',
       );
       Get.snackbar(
         'Required',
-        'Please select a concept to practice',
+        'Please select a topic to practice',
         snackPosition: SnackPosition.BOTTOM,
       );
       return;
     }
-
-    final concept = concepts.firstWhere(
-      (c) => c['id'] == selectedConcept.value,
-    );
-
+    final topic = selectedTopic.value!;
     AppLogger.info(
-      'PracticeController.startPractice(): concept=${selectedConcept.value}, mode=${selectedMode.value}, difficulty=${difficulty.value}, questions=${selectedQuestionCount.value}',
+      'PracticeController.startPractice(): topic=${topic.name}, mode=${selectedMode.value}, difficulty=${difficulty.value}, questions=${selectedQuestionCount.value}',
     );
-
     Get.toNamed(
       Routes.quiz,
       arguments: {
-        'conceptId': selectedConcept.value,
-        'conceptName': concept['name'],
-        'difficulty': difficulty.value,
+        'courseId': topic.mappingId,
+        'topicId': topic.majorTopicId,
         'numQuestions': selectedQuestionCount.value,
         'mode': selectedMode.value,
+        'difficulty': difficulty.value,
       },
     );
   }

@@ -61,27 +61,48 @@ class AuthService extends GetxService {
 
     final storedUserId = _storage.read('userId') as String?;
     final storedEmail = _storage.read('userEmail') as String?;
+    final storedName = _storage.read('userName') as String?;
+    final storedPhone = _storage.read('userPhone') as String?;
+    final storedAltEmail = _storage.read('userAltEmail') as String?;
+    final storedProfilePicUrl = _storage.read('profilePicUrl') as String?;
     if (storedUserId == null && storedEmail == null) {
       return null;
     }
 
-    return User(id: storedUserId, email: storedEmail);
+    return User(
+      id: storedUserId,
+      email: storedEmail,
+      name: storedName,
+      phone: storedPhone,
+      altEmail: storedAltEmail,
+      profilePicUrl: storedProfilePicUrl,
+    );
   }
 
   /// Parse JWT token to extract expiration and other claims
   /// Returns decoded payload or null if invalid
   Map<String, dynamic>? _parseJWT(String token) {
     try {
+      // Trim whitespace and surrounding quotes
+      token = token.trim();
+      if (token.isEmpty) return null;
       // JWT format: header.payload.signature
       final parts = token.split('.');
       if (parts.length != 3) return null;
-
-      // Decode payload (add padding if needed)
       String payload = parts[1];
-      // Add padding
-      payload += List<String>.filled(4 - payload.length % 4, '=').join('');
-      final decoded = utf8.decode(base64Url.decode(payload));
-      return jsonDecode(decoded);
+      // Ensure proper padding for base64 decoding
+      int mod = payload.length % 4;
+      if (mod != 0) payload += '=' * (4 - mod);
+      // First attempt URL-safe base64 decoding
+      try {
+        final decoded = utf8.decode(base64Url.decode(payload));
+        return jsonDecode(decoded) as Map<String, dynamic>?;
+      } catch (_) {
+        // Fallback: replace URL-safe chars and use standard base64 decoder
+        final sanitized = payload.replaceAll('-', '+').replaceAll('_', '/');
+        final decoded = utf8.decode(base64.decode(sanitized));
+        return jsonDecode(decoded) as Map<String, dynamic>?;
+      }
     } catch (e, stackTrace) {
       AppLogger.warning(
         'AuthService._parseJWT(): failed to parse token',
@@ -91,32 +112,37 @@ class AuthService extends GetxService {
       return null;
     }
   }
+  // Duplicate JWT parsing block removed
 
   /// Set token and calculate expiration time, also persist to storage
   void _setToken(String token) {
-    _accessToken = token;
+  _accessToken = token;
 
-    // Persist token to GetStorage
-    _storage.write(tokenStorageKey, token);
+  // Persist token to GetStorage
+  _storage.write(tokenStorageKey, token);
 
-    // Parse JWT to get expiration
-    final payload = _parseJWT(token);
-    if (payload != null && payload.containsKey('exp')) {
-      // exp is in seconds since epoch
-      final expSeconds = payload['exp'] as int;
-      _tokenExpiresAt = DateTime.fromMillisecondsSinceEpoch(expSeconds * 1000);
+  // Parse JWT to get expiration
+  final payload = _parseJWT(token);
+  if (payload != null && payload.containsKey('exp')) {
+    final expSeconds = payload['exp'] as int;
+    _tokenExpiresAt = DateTime.fromMillisecondsSinceEpoch(expSeconds * 1000);
+  } else {
+    // No expiration info; assume token valid for 5 minutes
+    _tokenExpiresAt = DateTime.now().add(const Duration(minutes: 5));
+    AppLogger.warning(
+      'AuthService._setToken(): no exp claim found, defaulting expiration to 5 minutes',
+    );
+  }
+  // Persist expiration time to storage
+  _storage.write(tokenExpirationStorageKey, _tokenExpiresAt?.toIso8601String());
+}
 
-      // Persist expiration time to storage
-      _storage.write(
-        tokenExpirationStorageKey,
-        _tokenExpiresAt?.toIso8601String(),
-      );
-
-      final duration = _tokenExpiresAt!.difference(DateTime.now());
-      AppLogger.info(
-        'AuthService._setToken(): expiresAt=${_tokenExpiresAt?.toIso8601String()}, expiresIn=${duration.inMinutes} minutes',
-      );
+  /// Check if token is truly expired (past expiration, not just within buffer)
+  bool _isTokenTrulyExpired() {
+    if (_accessToken == null || _tokenExpiresAt == null) {
+      return true;
     }
+    return _tokenExpiresAt!.isBefore(DateTime.now());
   }
 
   /// Check if token is expired or about to expire (within 5 minutes)
@@ -131,13 +157,29 @@ class AuthService extends GetxService {
     return expiresIn.inMinutes < 5;
   }
 
-  /// Refresh token if about to expire
+  /// Refresh token if about to expire.
+  /// Returns true if token is valid (either still good, or successfully refreshed).
+  /// Returns false only if the token has TRULY expired and refresh failed.
   Future<bool> _ensureTokenValid() async {
     if (_isTokenExpired()) {
       AppLogger.warning(
         'AuthService._ensureTokenValid(): token expiring soon, refreshing',
       );
-      return await refreshToken();
+      final refreshed = await refreshToken();
+      if (!refreshed) {
+        // Refresh failed — only treat as fatal if token is truly expired
+        if (_isTokenTrulyExpired()) {
+          AppLogger.error(
+            'AuthService._ensureTokenValid(): token truly expired and refresh failed',
+          );
+          return false;
+        }
+        // Token still has some time left — allow request to proceed
+        AppLogger.warning(
+          'AuthService._ensureTokenValid(): refresh failed but token still valid, proceeding',
+        );
+        return true;
+      }
     }
     return true;
   }
@@ -198,6 +240,13 @@ class AuthService extends GetxService {
 
         // Convert API response and merge with mock data
         final user = _adapter.convertLoginResponse(data);
+        // Persist user info to storage
+        _storage.write('userId', user.id);
+        _storage.write('userEmail', user.email);
+        if (user.name != null) _storage.write('userName', user.name);
+        if (user.phone != null) _storage.write('userPhone', user.phone);
+        if (user.altEmail != null) _storage.write('userAltEmail', user.altEmail);
+        if (user.profilePicUrl != null) _storage.write('profilePicUrl', user.profilePicUrl);
         AppLogger.info(
           'AuthService._performLogin(): parsed user id=${user.id}, email=${user.email}',
         );
@@ -317,6 +366,13 @@ class AuthService extends GetxService {
         // Convert API response and merge with mock data
         final user = User.fromJson(data);
         _adapter.saveMockUserData(user);
+        // Persist user info to storage
+        _storage.write('userId', user.id);
+        _storage.write('userEmail', user.email);
+        if (user.name != null) _storage.write('userName', user.name);
+        if (user.phone != null) _storage.write('userPhone', user.phone);
+        if (user.altEmail != null) _storage.write('userAltEmail', user.altEmail);
+        if (user.profilePicUrl != null) _storage.write('profilePicUrl', user.profilePicUrl);
         AppLogger.info(
           'AuthService._performRegister(): parsed user id=${user.id}, email=${user.email}',
         );
@@ -383,10 +439,26 @@ class AuthService extends GetxService {
   /// Get current user profile with auto-retry
   Future<User> getMe() async {
     if (_accessToken == null) {
-      throw NetworkException(
-        type: NetworkErrorType.unauthorized,
-        message: 'No access token available',
-      );
+      final storedToken = _storage.read(tokenStorageKey) as String?;
+      if (storedToken == null) {
+        throw NetworkException(
+          type: NetworkErrorType.unauthorized,
+          message: 'No access token available',
+        );
+      }
+      _setToken(storedToken);
+    }
+
+    // Also restore refresh token from storage if not already loaded
+    _refreshToken ??= _storage.read(refreshTokenStorageKey) as String?;
+
+    // Also restore expiration time from storage if not in memory
+    if (_tokenExpiresAt == null) {
+      final storedExpiration =
+          _storage.read(tokenExpirationStorageKey) as String?;
+      if (storedExpiration != null) {
+        _tokenExpiresAt = DateTime.tryParse(storedExpiration);
+      }
     }
 
     return NetworkErrorHandler.executeWithRetry(
@@ -398,45 +470,17 @@ class AuthService extends GetxService {
 
   /// Internal getMe implementation
   Future<User> _performGetMe() async {
-    const cacheKey = 'cache_user_profile';
-
     // Ensure token is still valid
     final tokenValid = await _ensureTokenValid();
     if (!tokenValid) {
-      // Offline fallback if token invalid but we have cache
-      final cachedData = _storage.read(cacheKey);
-      if (cachedData != null) {
-        AppLogger.warning(
-          'AuthService._performGetMe(): loading cached profile because token is invalid',
-        );
-        return _adapter.convertProfileResponse(jsonDecode(cachedData));
-      }
       throw NetworkException(
         type: NetworkErrorType.unauthorized,
-        message: 'Session expired',
+        message: 'Session expired. Please log in again.',
       );
     }
 
     try {
-      AppLogger.info(
-        'AuthService._performGetMe(): fetching current user profile',
-      );
-
-      // Check connectivity
-      final canReach = await ConnectivityHelper.canReachServer(apiBaseUrl);
-      if (!canReach) {
-        final cachedData = _storage.read(cacheKey);
-        if (cachedData != null) {
-          AppLogger.warning(
-            'AuthService._performGetMe(): loading cached profile',
-          );
-          return _adapter.convertProfileResponse(jsonDecode(cachedData));
-        }
-        throw NetworkException(
-          type: NetworkErrorType.noInternet,
-          message: 'Cannot reach server',
-        );
-      }
+      AppLogger.info('AuthService._performGetMe(): GET /api/auth/me');
 
       final response = await http
           .get(
@@ -446,38 +490,26 @@ class AuthService extends GetxService {
               'Authorization': 'Bearer $_accessToken',
             },
           )
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () => throw TimeoutException('GetMe request timeout'),
-          );
-
-      AppLogger.debug(
-        'AuthService._performGetMe(): response status=${response.statusCode}',
-      );
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        // Cache successful response
-        _storage.write(cacheKey, response.body);
-
         final data = jsonDecode(response.body);
+        final user = User.fromJson(data);
+        // Persist user info
+        _storage.write('userId', user.id);
+        _storage.write('userEmail', user.email);
+        if (user.name != null) _storage.write('userName', user.name);
+        if (user.phone != null) _storage.write('userPhone', user.phone);
+        if (user.altEmail != null) _storage.write('userAltEmail', user.altEmail);
+        if (user.profilePicUrl != null) _storage.write('profilePicUrl', user.profilePicUrl);
         AppLogger.info(
-          'AuthService._performGetMe(): success, responseKeys=${data.keys.join(', ')}',
+          'AuthService._performGetMe(): success, userId=${user.id}',
         );
-        // Convert API response and merge with mock data
-        final user = _adapter.convertProfileResponse(data);
         return user;
       } else if (response.statusCode == 401) {
-        AppLogger.warning(
-          'AuthService._performGetMe(): token expired, refreshing',
-        );
-        // Try to refresh token
         final refreshed = await refreshToken();
         if (refreshed) {
-          AppLogger.info(
-            'AuthService._performGetMe(): token refreshed, retrying',
-          );
-          // Retry getMe with new token
-          return _performGetMe();
+          return _performGetMe(); // Retry after successful refresh
         }
         throw NetworkException(
           type: NetworkErrorType.unauthorized,
@@ -487,185 +519,111 @@ class AuthService extends GetxService {
       } else {
         throw NetworkException(
           type: NetworkErrorHandler.detectErrorType(null, response.statusCode),
-          message: 'Failed to get profile',
+          message: 'Failed to fetch user profile',
           statusCode: response.statusCode,
+          details: response.body,
         );
       }
+    } on TimeoutException {
+      throw NetworkException(
+        type: NetworkErrorType.timeout,
+        message: 'Request to get user profile timed out',
+      );
     } on NetworkException {
       rethrow;
-    } catch (e) {
-      AppLogger.error(
-        'AuthService._performGetMe(): failed to fetch profile',
+    } catch (e, stackTrace) {
+      AppLogger.error('AuthService._performGetMe(): failed', e, stackTrace);
+      throw NetworkErrorHandler.createException(
         e,
+        'An unexpected error occurred while fetching your profile',
       );
-
-      // Fallback to cache for any unexpected errors
-      final cachedData = _storage.read(cacheKey);
-      if (cachedData != null) {
-        AppLogger.warning(
-          'AuthService._performGetMe(): falling back to cached profile after error',
-        );
-        return _adapter.convertProfileResponse(jsonDecode(cachedData));
-      }
-
-      throw NetworkErrorHandler.createException(e, 'Failed to fetch profile');
     }
   }
 
-  /// Refresh access token with retry logic
+  /// Refresh the access token using the stored refresh token
   Future<bool> refreshToken() async {
-    // Prevent multiple simultaneous refresh attempts
-    if (_isRefreshing) {
+    if (_isRefreshing) return false;
+    _isRefreshing = true;
+
+    // Load from storage if not in memory
+    _refreshToken ??= _storage.read(refreshTokenStorageKey);
+
+    if (_refreshToken == null) {
       AppLogger.warning(
-        'AuthService.refreshToken(): already refreshing, waiting',
+        'AuthService.refreshToken(): no refresh token available',
       );
-      // Wait a bit and check if token was refreshed
-      await Future.delayed(const Duration(milliseconds: 500));
-      return _accessToken != null;
+      _isRefreshing = false;
+      await logout(); // Logout if refresh token is missing
+      return false;
     }
 
-    _isRefreshing = true;
     try {
-      AppLogger.info('AuthService.refreshToken(): sending refresh request');
-
-      // Check connectivity
-      final canReach = await ConnectivityHelper.canReachServer(apiBaseUrl);
-      if (!canReach) {
-        AppLogger.warning('AuthService.refreshToken(): no internet connection');
-        return false;
-      }
-
-      final refToken = _refreshToken ?? _storage.read(refreshTokenStorageKey);
-      if (refToken == null) {
-        AppLogger.warning(
-          'AuthService.refreshToken(): no refresh token stored',
-        );
-        return false;
-      }
-
+      AppLogger.info('AuthService.refreshToken(): POST /api/auth/refresh');
       final response = await http
           .post(
             Uri.parse('$apiBaseUrl/api/auth/refresh'),
             headers: {
               'Content-Type': 'application/json',
-              'Cookie': 'refresh_token=$refToken',
+              'Cookie': 'refresh_token=$_refreshToken',
             },
           )
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              AppLogger.warning('AuthService.refreshToken(): timeout');
-              return http.Response('{"detail": "Timeout"}', 504);
-            },
-          );
-
-      AppLogger.debug(
-        'AuthService.refreshToken(): response status=${response.statusCode}',
-      );
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         _setToken(data['access_token']);
-        final refreshTokenFromBody = data['refresh_token'] as String?;
-        final refreshTokenFromCookie = _extractRefreshTokenFromSetCookie(
-          response.headers['set-cookie'],
-        );
-        _setRefreshToken(refreshTokenFromBody ?? refreshTokenFromCookie);
-        AppLogger.info(
-          'AuthService.refreshToken(): token refreshed successfully',
-        );
+        AppLogger.info('AuthService.refreshToken(): success');
+        _isRefreshing = false;
         return true;
-      } else if (response.statusCode == 401) {
-        AppLogger.error('AuthService.refreshToken(): invalid refresh token');
-        _accessToken = null;
-        _refreshToken = null;
-        _tokenExpiresAt = null;
-        return false;
       } else {
-        AppLogger.warning(
-          'AuthService.refreshToken(): unexpected status=${response.statusCode}',
+        AppLogger.error(
+          'AuthService.refreshToken(): failed status=${response.statusCode}, body=${response.body}',
         );
-        // For server errors, could retry, but usually better to fail fast
+        await logout(); // Logout on refresh failure
+        _isRefreshing = false;
         return false;
       }
     } catch (e, stackTrace) {
-      AppLogger.error(
-        'AuthService.refreshToken(): refresh failed',
-        e,
-        stackTrace,
-      );
+      AppLogger.error('AuthService.refreshToken(): failed', e, stackTrace);
+      await logout(); // Logout on error
+      _isRefreshing = false;
       return false;
-    } finally {
-      _isRefreshing = false;
     }
   }
 
-  /// Logout user
+  /// Logout user by clearing local tokens and storage
   Future<void> logout() async {
-    try {
-      AppLogger.info('AuthService.logout(): logging out user');
+    AppLogger.info('AuthService.logout()');
+    _accessToken = null;
+    _refreshToken = null;
+    _tokenExpiresAt = null;
 
-      if (_accessToken != null) {
-        try {
-          await http
-              .post(
-                Uri.parse('$apiBaseUrl/api/auth/logout'),
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Bearer $_accessToken',
-                },
-              )
-              .timeout(const Duration(seconds: 5));
-
-          AppLogger.info('AuthService.logout(): API call successful');
-        } on TimeoutException {
-          AppLogger.warning(
-            'AuthService.logout(): API call timed out but clearing local data',
-          );
-        } catch (e) {
-          AppLogger.warning(
-            'AuthService.logout(): API call failed but clearing local data',
-            e,
-          );
-        }
-      }
-    } catch (e, stackTrace) {
-      AppLogger.warning(
-        'AuthService.logout(): unexpected error',
-        e,
-        stackTrace,
-      );
-    } finally {
-      _accessToken = null;
-      _refreshToken = null;
-      _tokenExpiresAt = null;
-      _isRefreshing = false;
-
-      // Clear from storage
-      _storage.remove(tokenStorageKey);
-      _storage.remove(tokenExpirationStorageKey);
-      _storage.remove(refreshTokenStorageKey);
-
-      _adapter.clearUserData();
-      AppLogger.info(
-        'AuthService.logout(): local data and session storage cleared',
-      );
-    }
+    // Clear from GetStorage
+    await _storage.remove(tokenStorageKey);
+    await _storage.remove(tokenExpirationStorageKey);
+    await _storage.remove(refreshTokenStorageKey);
+    await _storage.remove('userId');
+    await _storage.remove('userEmail');
+    await _storage.remove('userName');
+    await _storage.remove('userPhone');
+    await _storage.remove('userAltEmail');
+    await _storage.remove('profilePicUrl');
   }
 
-  /// Change user password
-  Future<void> changePassword(
-    String currentPassword,
-    String newPassword,
-  ) async {
+  /// CHANGE PASSWORD
+  Future<void> changePassword(String oldPassword, String newPassword) async {
     if (_accessToken == null) {
       throw NetworkException(
         type: NetworkErrorType.unauthorized,
-        message: 'No access token available',
+        message: 'Not logged in',
       );
     }
+    await _ensureTokenValid();
 
     try {
+      AppLogger.info(
+        'AuthService.changePassword(): POST /api/auth/change-password',
+      );
       final response = await http
           .post(
             Uri.parse('$apiBaseUrl/api/auth/change-password'),
@@ -674,56 +632,55 @@ class AuthService extends GetxService {
               'Authorization': 'Bearer $_accessToken',
             },
             body: jsonEncode({
-              'current_password': currentPassword,
+              'current_password': oldPassword,
               'new_password': newPassword,
             }),
           )
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () =>
-                throw TimeoutException('Change password request timeout'),
-          );
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) {
-        try {
-          final error = jsonDecode(response.body);
-          throw NetworkException(
-            type: NetworkErrorHandler.detectErrorType(
-              null,
-              response.statusCode,
-            ),
-            message: error['detail'] ?? 'Failed to change password',
-            statusCode: response.statusCode,
-          );
-        } catch (e) {
-          if (e is NetworkException) rethrow;
-          throw NetworkException(
-            type: NetworkErrorHandler.detectErrorType(
-              null,
-              response.statusCode,
-            ),
-            message: 'Failed to change password',
-            statusCode: response.statusCode,
-          );
+        String message = 'Failed to change password.';
+        if (response.body.isNotEmpty) {
+          try {
+            final error = jsonDecode(response.body);
+            message = error['detail'] ?? message;
+          } catch (_) {}
         }
+        throw NetworkException(
+          type: NetworkErrorHandler.detectErrorType(null, response.statusCode),
+          message: message,
+          statusCode: response.statusCode,
+        );
       }
+      AppLogger.info('AuthService.changePassword(): success');
+    } on TimeoutException {
+      throw NetworkException(
+        type: NetworkErrorType.timeout,
+        message: 'Request timed out',
+      );
     } on NetworkException {
       rethrow;
-    } catch (e) {
-      throw NetworkErrorHandler.createException(e, 'Failed to change password');
+    } catch (e, stackTrace) {
+      AppLogger.error('AuthService.changePassword(): failed', e, stackTrace);
+      throw NetworkErrorHandler.createException(
+        e,
+        'An unexpected error occurred.',
+      );
     }
   }
 
-  /// Update user profile (language and experience level)
-  Future<void> updateProfile(String languageId, String experienceLevel) async {
+  /// UPDATE USER PROFILE
+  Future<User> updateProfile(Map<String, dynamic> data) async {
     if (_accessToken == null) {
       throw NetworkException(
         type: NetworkErrorType.unauthorized,
-        message: 'No access token available',
+        message: 'Not logged in',
       );
     }
+    await _ensureTokenValid();
 
     try {
+      AppLogger.info('AuthService.updateProfile(): PUT /api/auth/profile');
       final response = await http
           .put(
             Uri.parse('$apiBaseUrl/api/auth/profile'),
@@ -731,167 +688,102 @@ class AuthService extends GetxService {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $_accessToken',
             },
-            body: jsonEncode({
-              'language_id': languageId,
-              'experience_level': experienceLevel,
-            }),
+            body: jsonEncode(data),
           )
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () =>
-                throw TimeoutException('Update profile request timeout'),
-          );
+          .timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200) {
-        try {
-          final error = jsonDecode(response.body);
-          throw NetworkException(
-            type: NetworkErrorHandler.detectErrorType(
-              null,
-              response.statusCode,
-            ),
-            message: error['detail'] ?? 'Failed to update profile',
-            statusCode: response.statusCode,
-          );
-        } catch (e) {
-          if (e is NetworkException) rethrow;
-          throw NetworkException(
-            type: NetworkErrorHandler.detectErrorType(
-              null,
-              response.statusCode,
-            ),
-            message: 'Failed to update profile',
-            statusCode: response.statusCode,
-          );
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        final user = User.fromJson(responseData);
+        // Update local storage
+        _storage.write('userName', user.name);
+        _storage.write('userEmail', user.email);
+        _storage.write('userPhone', user.phone);
+        if (user.altEmail != null) _storage.write('userAltEmail', user.altEmail);
+        if (user.profilePicUrl != null) _storage.write('profilePicUrl', user.profilePicUrl);
+        AppLogger.info('AuthService.updateProfile(): success');
+        return user;
+      } else {
+        String message = 'Failed to update profile.';
+        if (response.body.isNotEmpty) {
+          try {
+            final error = jsonDecode(response.body);
+            message = error['detail'] ?? message;
+          } catch (_) {}
         }
+        throw NetworkException(
+          type: NetworkErrorHandler.detectErrorType(null, response.statusCode),
+          message: message,
+          statusCode: response.statusCode,
+        );
       }
+    } on TimeoutException {
+      throw NetworkException(
+        type: NetworkErrorType.timeout,
+        message: 'Request timed out',
+      );
     } on NetworkException {
       rethrow;
-    } catch (e) {
-      throw NetworkErrorHandler.createException(e, 'Failed to update profile');
+    } catch (e, stackTrace) {
+      AppLogger.error('AuthService.updateProfile(): failed', e, stackTrace);
+      throw NetworkErrorHandler.createException(
+        e,
+        'An unexpected error occurred.',
+      );
     }
   }
 
-  /// Get stored access token
   String? getAccessToken() => _accessToken;
 
-  /// Set access token (useful for restoring session)
-  void setAccessToken(String token) {
-    _setToken(token);
+  /// Check if user is authenticated (token exists and is not expired)
+  bool isAuthenticated() {
+    return _accessToken != null && !_isTokenExpired();
   }
 
-  /// Check if user is authenticated
-  bool isAuthenticated() => _accessToken != null && !_isTokenExpired();
-
-  /// Get token expiration time
-  DateTime? getTokenExpiresAt() => _tokenExpiresAt;
-
-  /// Get remaining time until token expiration
-  Duration? getTokenExpiresIn() {
-    if (_tokenExpiresAt == null) return null;
-    return _tokenExpiresAt!.difference(DateTime.now());
-  }
-
-  /// Check if token is expired
-  bool isTokenExpired() => _isTokenExpired();
-
-  /// Restore session from persistent storage
-  /// Returns true if session was successfully restored
+  /// Restore session from persistent storage. Returns true if successful.
   Future<bool> restoreSession() async {
-    try {
-      AppLogger.info(
-        'AuthService.restoreSession(): attempting to restore session',
-      );
+    AppLogger.info('AuthService.restoreSession(): attempting to restore');
+    final storedToken = _storage.read(tokenStorageKey) as String?;
+    final storedRefreshToken = _storage.read(refreshTokenStorageKey) as String?;
 
-      final storedToken = _storage.read(tokenStorageKey);
-      final storedExpiration = _storage.read(tokenExpirationStorageKey);
-      final storedRefreshToken = _storage.read(refreshTokenStorageKey);
-
-      if (storedToken == null) {
-        AppLogger.warning(
-          'AuthService.restoreSession(): no stored token found',
-        );
-        return false;
-      }
-
-      AppLogger.info('AuthService.restoreSession(): stored token found');
-
-      // Restore token and expiration
-      _accessToken = storedToken;
-      _refreshToken = storedRefreshToken;
-      if (storedExpiration != null) {
-        _tokenExpiresAt = DateTime.parse(storedExpiration);
-      }
-
-      // Check if token is still valid
-      if (_isTokenExpired()) {
-        AppLogger.warning(
-          'AuthService.restoreSession(): stored token expired, refreshing',
-        );
-
-        // Try to refresh the token
-        final refreshed = await refreshToken();
-        if (!refreshed) {
-          AppLogger.error(
-            'AuthService.restoreSession(): token refresh failed, session expired',
-          );
-          _accessToken = null;
-          _refreshToken = null;
-          _tokenExpiresAt = null;
-          _storage.remove(tokenStorageKey);
-          _storage.remove(tokenExpirationStorageKey);
-          _storage.remove(refreshTokenStorageKey);
-          return false;
-        }
-
-        AppLogger.info(
-          'AuthService.restoreSession(): token refreshed successfully',
-        );
-      }
-
-      AppLogger.info(
-        'AuthService.restoreSession(): session restored, expiresIn=${getTokenExpiresIn()?.inMinutes} minutes',
-      );
-      return true;
-    } catch (e, stackTrace) {
-      AppLogger.error(
-        'AuthService.restoreSession(): restore failed',
-        e,
-        stackTrace,
-      );
-      _accessToken = null;
-      _tokenExpiresAt = null;
-      _storage.remove(tokenStorageKey);
-      _storage.remove(tokenExpirationStorageKey);
+    if (storedToken == null) {
+      AppLogger.warning('AuthService.restoreSession(): no token in storage');
       return false;
     }
+
+    _setToken(storedToken);
+    _setRefreshToken(storedRefreshToken);
+
+    if (_isTokenExpired()) {
+      AppLogger.warning(
+        'AuthService.restoreSession(): token expired, attempting refresh',
+      );
+      return await refreshToken();
+    }
+
+    AppLogger.info('AuthService.restoreSession(): success');
+    return true;
   }
 
-  /// Check if there's a valid session in storage
+  /// Check if a session token exists in storage (doesn't validate it)
   bool isSessionValid() {
-    final storedToken = _storage.read(tokenStorageKey);
-    return storedToken != null;
+    return _storage.read(tokenStorageKey) != null;
   }
+}
 
-  /// Verify session is still active on the backend
-  /// This can be used as an optional extra check during restoration
-  Future<bool> verifySession() async {
-    if (_accessToken == null) {
-      return false;
-    }
-
+/// Helper to check network connectivity before making API calls
+class ConnectivityHelper {
+  static Future<bool> canReachServer(String url) async {
     try {
-      AppLogger.info('AuthService.verifySession(): checking backend session');
-      final user = await getMe();
-      AppLogger.info(
-        'AuthService.verifySession(): session valid, user=${user.email}',
+      final uri = Uri.parse(url);
+      final response = await http.head(uri).timeout(const Duration(seconds: 3));
+      // Assume reachability if we get any response, even an error code
+      AppLogger.debug(
+        'Connectivity check to $url OK (status ${response.statusCode})',
       );
       return true;
     } catch (e) {
-      AppLogger.warning(
-        'AuthService.verifySession(): session verification failed',
-        e,
-      );
+      AppLogger.warning('Connectivity check to $url FAILED', e);
       return false;
     }
   }

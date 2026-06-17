@@ -16,12 +16,12 @@ abstract class Routes {
   static const courseDetails = _Paths.courseDetails;
   static const profile = _Paths.profile;
   static const quiz = _Paths.quiz;
+  static const practice = _Paths.practice;
+  static const notifications = _Paths.notifications;
   static const main = _Paths.main;
   static const courses = _Paths.courses;
   static const myCourses = _Paths.myCourses;
-  static const notifications = _Paths.notifications;
   static const landing = _Paths.landing;
-  static const practice = _Paths.practice;
   static const analytics = _Paths.analytics;
   static const reports = _Paths.reports;
   static const register = _Paths.register;
@@ -49,13 +49,14 @@ abstract class _Paths {
   static const resultHistory = '/result-history';
   static const courseDetails = '/course-details';
   static const quiz = '/quiz';
+  static const practice = '/practice';
+  static const notifications = '/notifications';
   static const main = '/main';
   static const courses = '/courses';
   static const myCourses = '/my-courses';
-  static const notifications = '/notifications';
   static const landing = '/landing';
-  static const practice = '/practice';
   static const analytics = '/analytics';
+  static const reports = '/reports';
   static const register = '/register';
   static const forgotPassword = '/forgot-password';
   static const resetEmailSent = '/reset-email-sent';
@@ -63,5 +64,4 @@ abstract class _Paths {
   static const changePassword = '/change-password';
   static const emailVerification = '/email-verification';
   static const verificationSent = '/verification-sent';
-  static const reports = '/reports';
 }

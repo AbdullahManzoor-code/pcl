@@ -1,197 +1,162 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:pcl/app/core/utils/app_logger.dart';
 import '../models/achievement_model.dart';
-import './notification_service.dart';
-import '../../core/utils/haptic_utils.dart';
+import 'api_config.dart';
+import 'auth_service.dart';
+import 'network_error_handler.dart';
 
-/// Service for managing achievements and gamification
 class AchievementService extends GetxService {
-  final _storage = GetStorage();
-  final _key = 'achievements';
-  final NotificationService _notificationService =
-      Get.find<NotificationService>();
+  final AuthService _authService = Get.find<AuthService>();
+  static String get apiBaseUrl => ApiConfig.baseUrl;
 
-  final achievements = <Achievement>[].obs;
-  final unlockedCount = 0.obs;
+  /// Fetch all achievements for the logged-in user from the backend
+  Future<List<Achievement>> getAchievements() async {
+    final token = _authService.getAccessToken();
+    if (token == null) {
+      throw NetworkException(
+        type: NetworkErrorType.unauthorized,
+        message: 'You are not logged in.',
+      );
+    }
 
-  Future<AchievementService> init() async {
-    _loadAchievements();
-    return this;
-  }
+    // Ensure auth token is valid before making the request
+    await _authService.refreshToken();
 
-  void _loadAchievements() {
-    final List<dynamic>? savedData = _storage.read(_key);
-    if (savedData != null) {
-      achievements.value = savedData.map((json) {
-        return Achievement.fromJson(
-          json,
-          icon: _getIconForCategory(json['category']),
-          color: _getColorForCategory(json['category']),
+    AppLogger.info(
+      'AchievementService.getAchievements(): GET /api/user/achievements',
+    );
+
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$apiBaseUrl/api/user/achievements'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        final achievements = data.map((json) {
+          return Achievement.fromJson(
+            json,
+            icon: _getIconForCategory(json['category']),
+            color: _getColorForCategory(json['category']),
+          );
+        }).toList();
+        AppLogger.info(
+          'AchievementService.getAchievements(): success, count=${achievements.length}',
         );
-      }).toList();
-    } else {
-      achievements.value = _getDefaultAchievements();
-    }
-    _updateUnlockedCount();
-  }
-
-  void _saveAchievements() {
-    _storage.write(_key, achievements.map((a) => a.toJson()).toList());
-  }
-
-  void _updateUnlockedCount() {
-    unlockedCount.value = achievements.where((a) => a.isUnlocked).length;
-  }
-
-  /// Update progress for an achievement
-  void updateProgress(String achievementId, int progress) {
-    final index = achievements.indexWhere((a) => a.id == achievementId);
-    if (index == -1) return;
-
-    final achievement = achievements[index];
-    if (achievement.isUnlocked) return; // Already unlocked
-
-    final updated = achievement.copyWith(currentProgress: progress);
-    achievements[index] = updated;
-
-    // Check if just unlocked
-    if (updated.isCompleted && !updated.isUnlocked) {
-      _unlockAchievement(achievementId);
-    }
-
-    _saveAchievements();
-  }
-
-  /// Increment progress for an achievement
-  void incrementProgress(String achievementId, [int amount = 1]) {
-    final achievement = achievements.firstWhereOrNull(
-      (a) => a.id == achievementId,
-    );
-    if (achievement != null) {
-      updateProgress(achievementId, achievement.currentProgress + amount);
+        return achievements;
+      } else {
+        throw NetworkException(
+          type: NetworkErrorHandler.detectErrorType(null, response.statusCode),
+          message: 'Failed to fetch achievements',
+          statusCode: response.statusCode,
+          details: response.body,
+        );
+      }
+    } on TimeoutException {
+      throw NetworkException(
+        type: NetworkErrorType.timeout,
+        message: 'Request to fetch achievements timed out',
+      );
+    } on NetworkException catch (e) {
+      // Return dummy data for development/testing
+      AppLogger.warning(
+        'AchievementService.getAchievements(): using dummy data due to error: $e',
+      );
+      return _dummyAchievements();
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'AchievementService.getAchievements(): failed',
+        e,
+        stackTrace,
+      );
+      throw NetworkErrorHandler.createException(
+        e,
+        'An unexpected error occurred while fetching achievements.',
+      );
     }
   }
 
-  /// Unlock an achievement
-  void _unlockAchievement(String achievementId) {
-    final index = achievements.indexWhere((a) => a.id == achievementId);
-    if (index == -1) return;
-
-    final achievement = achievements[index];
-    achievements[index] = achievement.copyWith(
-      isUnlocked: true,
-      unlockedAt: DateTime.now(),
-    );
-
-    _updateUnlockedCount();
-    _saveAchievements();
-
-    // Celebrate!
-    HapticUtils.heavyImpact();
-    _notificationService.showNotification(
-      id: achievementId.hashCode,
-      title: '🎉 Achievement Unlocked!',
-      body: achievement.title,
-    );
-
-    Get.snackbar(
-      '🎉 Achievement Unlocked!',
-      achievement.title,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: achievement.color.withOpacity(0.9),
-      colorText: Colors.white,
-      icon: Icon(achievement.icon, color: Colors.white),
-      duration: const Duration(seconds: 4),
-    );
-  }
-
-  List<Achievement> _getDefaultAchievements() {
+  // Dummy achievements for when the API is unavailable (development mode)
+  List<Achievement> _dummyAchievements() {
     return [
       Achievement(
-        id: 'first_course',
+        id: '1',
         title: 'First Steps',
-        description: 'Complete your first course',
-        icon: Icons.school,
+        description: 'Complete your first lesson',
+        icon: Icons.star_rounded,
+        color: Colors.amber,
+        requiredCount: 1,
+        category: 'streak',
+      ),
+      Achievement(
+        id: '2',
+        title: 'Quiz Master',
+        description: 'Score 100% on a quiz',
+        icon: Icons.quiz_rounded,
+        color: Colors.purple,
+        requiredCount: 1,
+        category: 'quizzes',
+      ),
+      Achievement(
+        id: '3',
+        title: 'Course Conqueror',
+        description: 'Finish a full course',
+        icon: Icons.auto_stories_rounded,
         color: Colors.blue,
         requiredCount: 1,
         category: 'courses',
       ),
       Achievement(
-        id: 'course_master',
-        title: 'Course Master',
-        description: 'Complete 5 courses',
-        icon: Icons.workspace_premium,
-        color: Colors.purple,
-        requiredCount: 5,
-        category: 'courses',
-      ),
-      Achievement(
-        id: 'quiz_novice',
-        title: 'Quiz Novice',
-        description: 'Complete 10 quizzes',
-        icon: Icons.quiz,
+        id: '4',
+        title: 'Mastery Achieved',
+        description: 'Reach mastery level in a skill',
+        icon: Icons.emoji_events_rounded,
         color: Colors.orange,
-        requiredCount: 10,
-        category: 'quizzes',
-      ),
-      Achievement(
-        id: 'perfect_score',
-        title: 'Perfect Score',
-        description: 'Get 100% on a quiz',
-        icon: Icons.star,
-        color: Colors.amber,
         requiredCount: 1,
-        category: 'quizzes',
-      ),
-      Achievement(
-        id: 'week_streak',
-        title: 'Dedicated Learner',
-        description: 'Practice for 7 days in a row',
-        icon: Icons.local_fire_department,
-        color: Colors.red,
-        requiredCount: 7,
-        category: 'streak',
-      ),
-      Achievement(
-        id: 'mastery_expert',
-        title: 'Mastery Expert',
-        description: 'Achieve 90%+ mastery in 3 topics',
-        icon: Icons.emoji_events,
-        color: Colors.green,
-        requiredCount: 3,
         category: 'mastery',
       ),
     ];
   }
 
-  IconData _getIconForCategory(String category) {
+  // Helper methods to assign icons and colors based on category
+  IconData _getIconForCategory(String? category) {
     switch (category) {
-      case 'courses':
-        return Icons.school;
-      case 'quizzes':
-        return Icons.quiz;
       case 'streak':
-        return Icons.local_fire_department;
+        return Icons.bolt_rounded;
+      case 'courses':
+        return Icons.auto_stories_rounded;
+      case 'quizzes':
+        return Icons.quiz_rounded;
       case 'mastery':
-        return Icons.emoji_events;
+        return Icons.emoji_events_rounded;
       default:
-        return Icons.star;
+        return Icons.star_rounded;
     }
   }
 
-  Color _getColorForCategory(String category) {
+  Color _getColorForCategory(String? category) {
     switch (category) {
+      case 'streak':
+        return Colors.orange;
       case 'courses':
         return Colors.blue;
       case 'quizzes':
-        return Colors.orange;
-      case 'streak':
-        return Colors.red;
-      case 'mastery':
-        return Colors.green;
-      default:
         return Colors.purple;
+      case 'mastery':
+        return Colors.amber;
+      default:
+        return Colors.grey;
     }
   }
 }

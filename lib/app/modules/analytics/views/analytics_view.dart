@@ -6,8 +6,9 @@ import '../controllers/analytics_controller.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/next_components.dart';
 import '../../../core/utils/haptic_utils.dart';
-import '../../../data/models/analytics_model.dart';
+import '../../../data/models/dashboard_api_models.dart';
 import 'package:intl/intl.dart';
+import '../widgets/decay_alerts_widget.dart';
 
 class AnalyticsView extends GetView<AnalyticsController> {
   const AnalyticsView({super.key});
@@ -50,6 +51,8 @@ class AnalyticsView extends GetView<AnalyticsController> {
               _buildSectionHeader('Mastery Progress', Icons.insights_rounded),
               SizedBox(height: 16.h),
               _buildMasteryGrid(context),
+              SizedBox(height: 32.h),
+              // DecayAlertsWidget(alerts: controller.decayAlerts),
               SizedBox(height: 32.h),
               _buildSectionHeader('Recent Sessions', Icons.history_rounded),
               SizedBox(height: 16.h),
@@ -95,7 +98,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
         ),
         _buildSummaryCard(
           'Avg Mastery',
-          '${controller.avgMastery.value}%',
+          '${controller.avgMastery.value.toStringAsFixed(2)}%',
           Icons.trending_up_rounded,
           const [Color(0xFF2563EB), Color(0xFF3B82F6)],
         ),
@@ -126,10 +129,10 @@ class AnalyticsView extends GetView<AnalyticsController> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: colors[0].withOpacity(0.1), width: 1.5),
+        border: Border.all(color: colors[0].withValues(alpha: 0.1), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: colors[0].withOpacity(0.1),
+            color: colors[0].withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -322,7 +325,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
     );
   }
 
-  Widget _buildTimelineItem(BuildContext context, PracticeSession session) {
+  Widget _buildTimelineItem(BuildContext context, RecentSession session) {
     final isPositive = session.masteryGain >= 0;
 
     return IntrinsicHeight(
@@ -376,7 +379,7 @@ class AnalyticsView extends GetView<AnalyticsController> {
                                 ),
                               ),
                               Text(
-                                session.subTopic
+                                session.subTopic!
                                     .replaceAll('_', ' ')
                                     .capitalizeFirst!,
                                 style: GoogleFonts.inter(
@@ -388,7 +391,9 @@ class AnalyticsView extends GetView<AnalyticsController> {
                           ),
                         ),
                         Text(
-                          _getRelativeTime(session.timestamp),
+                          _getRelativeTime(
+                            DateTime.parse(session.timestamp as String),
+                          ),
                           style: GoogleFonts.inter(
                             fontSize: 10.sp,
                             color: Colors.grey,

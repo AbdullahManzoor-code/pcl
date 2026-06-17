@@ -11,6 +11,8 @@ import '../../../core/utils/haptic_utils.dart';
 import '../controllers/dashboard_controller.dart';
 import '../../../data/models/course_model.dart';
 import '../../../core/widgets/heatmap.dart';
+import '../widgets/synergy_bonus_card.dart';
+import '../widgets/transfer_boost_alert.dart';
 
 class DashboardView extends GetView<DashboardController> {
   const DashboardView({super.key});
@@ -69,10 +71,20 @@ class DashboardView extends GetView<DashboardController> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(height: 20.h), // Spacing after overlap
-                          SizedBox(height: 24.h),
-                          Obx(
-                            () => LearningHeatmap(data: controller.heatmapData),
-                          ),
+                          // SizedBox(height: 24.h),
+                          // Obx(
+                          //   () => TransferBoostAlert(
+                          //     boosts: controller.transferBoosts,
+                          //   ),
+                          // ),
+                          // Obx(
+                          //   () => SynergyBonusCard(
+                          //     bonuses: controller.synergyBonuses,
+                          //   ),
+                          // ),
+                          // Obx(
+                          //   () => LearningHeatmap(data: controller.heatmapData),
+                          // ),
                           SizedBox(height: 24.h),
                           _buildQuickActions(context),
                           SizedBox(height: 32.h),
@@ -567,7 +579,7 @@ class DashboardView extends GetView<DashboardController> {
           child: GestureDetector(
             onTap: () => controller.goToAnalyticsTab(),
             child: LevelProgressCard(
-              currentLevel: controller.user.value.stats!.totalXP ?? 1,
+              currentLevel: controller.user.value.stats?.totalXP ?? 0,
               currentXP: 850,
               xpForNextLevel: 1000,
               color: AppColors.primary,

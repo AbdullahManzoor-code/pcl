@@ -1,4 +1,4 @@
-import 'package:flutter_skill/flutter_skill.dart';
+/// Main entry point for the Programming Learning App
 import 'package:flutter/foundation.dart'; // For kDebugMode
 import 'dart:async';
 import 'dart:ui' as ui;
@@ -21,100 +21,121 @@ import 'app/core/theme/app_theme.dart';
 import 'app/core/utils/app_logger.dart';
 import 'app/services/validation_service.dart';
 
-void main() async {
-  runZonedGuarded(
-    () async {
-      WidgetsFlutterBinding.ensureInitialized();
-      AppLogger.info('main(): bootstrap start');
+class AppEntry extends StatelessWidget {
+  const AppEntry({Key? key}) : super(key: key);
 
-      FlutterError.onError = (details) {
-        FlutterError.presentError(details);
-        AppLogger.fatal(
-          'main(): Flutter framework error',
-          details.exception,
-          details.stack,
+  @override
+  Widget build(BuildContext context) {
+    return ScreenUtilInit(
+      designSize: const Size(375, 812),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (_, child) {
+        final ThemeService themeService = Get.find<ThemeService>();
+        return GetMaterialApp(
+          title: 'Programming Learning App',
+          initialRoute: AppPages.initial,
+          getPages: AppPages.routes,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeService.theme,
+          debugShowCheckedModeBanner: false,
         );
-      };
+      },
+    );
+  }
+}
 
-      ui.PlatformDispatcher.instance.onError = (error, stack) {
-        AppLogger.fatal('main(): uncaught platform error', error, stack);
-        return true;
-      };
+Future<void> main() async {
+  // Register core services and initialize ThemeService
+  AppLogger.info('main(): registering API and domain services');
+  // Initialize ThemeService with stored value
+  final themeService = Get.put<ThemeService>(ThemeService(), permanent: true);
+  Get.put<ApiAdapterService>(ApiAdapterService());
+  Get.put<AuthService>(AuthService());
+  Get.put<CourseService>(CourseService());
+  Get.put<DashboardService>(DashboardService());
+  Get.put<ExamService>(ExamService());
+  // Register NotificationService
+  Get.put<NotificationService>(NotificationService());
+  // Lazy register ReportsService
+  Get.lazyPut<ReportsService>(() => ReportsService(), fenix: true);
 
-      AppLogger.info('main(): initializing storage');
-      await GetStorage.init();
-
-      AppLogger.info('main(): initializing services');
-      final themeService = await Get.putAsync(() => ThemeService().init());
-      final notificationService = await Get.putAsync(
-        () => NotificationService().init(),
-      );
-
-      AppLogger.info('main(): registering API and domain services');
-      Get.put<ApiAdapterService>(ApiAdapterService());
-      Get.put<AuthService>(AuthService());
-      Get.put<CourseService>(CourseService());
-      Get.put<DashboardService>(DashboardService());
-      Get.put<ExamService>(ExamService());
-      // Register ReportsService lazily so it's available app-wide when needed.
-      Get.lazyPut<ReportsService>(() => ReportsService(), fenix: true);
-
-      final apiService = await Get.putAsync(() async => MockApiService());
-      Get.put<CourseRepository>(CourseRepositoryImpl(apiService));
-      Get.put(ValidationService());
-
-      runApp(
-        ScreenUtilInit(
-          designSize: const Size(375, 812),
-          minTextAdapt: true,
-          splitScreenMode: true,
-          builder: (_, child) {
-            return GetMaterialApp(
-              title: 'Programming Learning App',
-              initialRoute: AppPages.initial,
-              getPages: AppPages.routes,
-              theme: AppTheme.lightTheme,
-              darkTheme: AppTheme.darkTheme,
-              themeMode: themeService.theme,
-              debugShowCheckedModeBanner: false,
-              routingCallback: (routing) {
-                if (routing == null) return;
-                if (routing.current != routing.previous) {
-                  final previousRoute = routing.previous.isEmpty
-                      ? 'unknown'
-                      : routing.previous;
-                  AppLogger.info(
-                    'main(): route $previousRoute -> ${routing.current}',
-                  );
-                }
-              },
-            );
-          },
-        ),
-      );
-
-      final storage = GetStorage();
-      if (storage.read('isFirstLaunch') ?? true) {
-        AppLogger.info(
-          'main(): requesting notification permissions on first launch',
-        );
-        try {
-          final granted = await notificationService.requestPermissions();
-          AppLogger.info('main(): notification permission granted=$granted');
-        } catch (error, stackTrace) {
-          AppLogger.error(
-            'main(): notification permission request failed',
-            error,
-            stackTrace,
-          );
-        }
-        storage.write('isFirstLaunch', false);
-      }
-
-      AppLogger.info('main(): bootstrap complete');
-    },
-    (error, stackTrace) {
-      AppLogger.fatal('main(): uncaught zone error', error, stackTrace);
-    },
+  // Initialize mock API and repositories
+  final apiService = await Get.putAsync<MockApiService>(
+    () async => MockApiService(),
   );
+  Get.put<CourseRepository>(CourseRepositoryImpl(apiService));
+  Get.put(ValidationService());
+
+  // Global error handling
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    AppLogger.fatal(
+      'main(): Flutter framework error',
+      details.exception,
+      details.stack,
+    );
+  };
+  ui.PlatformDispatcher.instance.onError = (error, stack) {
+    AppLogger.fatal('main(): uncaught async error', error, stack);
+    return true;
+  };
+
+  // Notification permissions on first launch
+  final storage = GetStorage();
+  if (storage.read('isFirstLaunch') ?? true) {
+    AppLogger.info(
+      'main(): requesting notification permissions on first launch',
+    );
+    try {
+      final notificationService = Get.find<NotificationService>();
+      final granted = await notificationService.requestPermissions();
+      AppLogger.info('main(): notification permission granted=$granted');
+    } catch (e, st) {
+      AppLogger.error('main(): notification permission request failed', e, st);
+    }
+    storage.write('isFirstLaunch', false);
+  }
+
+  // Run the app
+  runApp(const AppEntry());
+
+  AppLogger.info('main(): bootstrap complete');
+}
+
+// Simple MyApp wrapper for widget tests
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) => const AppEntry();
+}
+
+// Simple CounterPage used in widget tests
+class CounterPage extends StatefulWidget {
+  const CounterPage({Key? key}) : super(key: key);
+
+  @override
+  _CounterPageState createState() => _CounterPageState();
+}
+
+class _CounterPageState extends State<CounterPage> {
+  int _counter = 0;
+  void _increment() => setState(() => _counter++);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Counter')),
+      body: Center(
+        child: Text('$_counter', style: const TextStyle(fontSize: 24)),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _increment,
+        tooltip: 'Increment',
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
 }

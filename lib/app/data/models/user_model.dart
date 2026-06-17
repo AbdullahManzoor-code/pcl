@@ -7,6 +7,9 @@ class User {
   final DateTime? createdAt;
   final bool? isAdmin;
   final String? status;
+  final String? phone;
+  final String? altEmail;
+  final String? profilePicUrl;
 
   /// Mock/Extended fields
   final String? name;
@@ -22,6 +25,9 @@ class User {
     this.createdAt,
     this.isAdmin,
     this.status,
+    this.phone,
+    this.altEmail,
+    this.profilePicUrl,
     this.name,
     this.profilePic,
     this.bio,
@@ -49,6 +55,10 @@ class User {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,
+      name: json['name'],
+      phone: json['phone'],
+      altEmail: json['alt_email'],
+      profilePicUrl: json['profile_pic_url'],
     );
   }
 
@@ -85,6 +95,9 @@ class User {
       'is_admin': isAdmin,
       'status': status,
       'name': name,
+      'phone': phone,
+      'alt_email': altEmail,
+      'profile_pic_url': profilePicUrl,
       'profile_pic': profilePic,
       'bio': bio,
       'stats': stats?.toJson(),
@@ -100,6 +113,9 @@ class User {
     bool? isAdmin,
     String? status,
     String? name,
+    String? phone,
+    String? altEmail,
+    String? profilePicUrl,
     String? profilePic,
     String? bio,
     UserStats? stats,
@@ -113,6 +129,9 @@ class User {
       isAdmin: isAdmin ?? this.isAdmin,
       status: status ?? this.status,
       name: name ?? this.name,
+      phone: phone ?? this.phone,
+      altEmail: altEmail ?? this.altEmail,
+      profilePicUrl: profilePicUrl ?? this.profilePicUrl,
       profilePic: profilePic ?? this.profilePic,
       bio: bio ?? this.bio,
       stats: stats ?? this.stats,
@@ -135,6 +154,9 @@ class User {
       isAdmin: isAdmin,
       status: status,
       name: mockName ?? name,
+      phone: phone,
+      altEmail: altEmail,
+      profilePicUrl: mockProfilePic ?? profilePicUrl,
       profilePic: mockProfilePic ?? profilePic,
       bio: mockBio ?? bio,
       stats: mockStats ?? stats,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:pcl/app/data/models/course_api_models.dart';
 import '../controllers/practice_controller.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/next_components.dart';
@@ -22,41 +23,49 @@ class PracticeView extends GetView<PracticeController> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.symmetric(horizontal: 24.w),
-        child: Column(
-          children: [
-            SizedBox(height: 16.h),
-            _buildInfoCard(context),
-            SizedBox(height: 24.h),
-            _buildSectionHeader('Select Concept', Icons.track_changes_rounded),
-            SizedBox(height: 16.h),
-            _buildConceptGrid(context),
-            SizedBox(height: 32.h),
-            _buildSectionHeader(
-              'Difficulty Level',
-              Icons.settings_input_component_rounded,
-            ),
-            SizedBox(height: 16.h),
-            _buildDifficultySlider(context),
-            SizedBox(height: 32.h),
-            _buildSectionHeader(
-              'Question Count',
-              Icons.format_list_numbered_rounded,
-            ),
-            SizedBox(height: 16.h),
-            _buildQuestionCountPicker(context),
-            SizedBox(height: 32.h),
-            _buildSectionHeader('Practice Mode', Icons.bolt_rounded),
-            SizedBox(height: 16.h),
-            _buildModeSelector(context),
-            SizedBox(height: 32.h),
-            _buildStartButton(context),
-            SizedBox(height: 48.h),
-          ],
-        ),
-      ),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.availableTopics.isEmpty) {
+          return const Center(child: Text('No topics available for practice.'));
+        }
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Column(
+            children: [
+              SizedBox(height: 16.h),
+              _buildInfoCard(context),
+              SizedBox(height: 24.h),
+              _buildSectionHeader('Select Topic', Icons.track_changes_rounded),
+              SizedBox(height: 16.h),
+              _buildTopicSelector(context),
+              SizedBox(height: 32.h),
+              _buildSectionHeader(
+                'Difficulty Level',
+                Icons.settings_input_component_rounded,
+              ),
+              SizedBox(height: 16.h),
+              _buildDifficultySlider(context),
+              SizedBox(height: 32.h),
+              _buildSectionHeader(
+                'Question Count',
+                Icons.format_list_numbered_rounded,
+              ),
+              SizedBox(height: 16.h),
+              _buildQuestionCountPicker(context),
+              SizedBox(height: 32.h),
+              _buildSectionHeader('Practice Mode', Icons.bolt_rounded),
+              SizedBox(height: 16.h),
+              _buildModeSelector(context),
+              SizedBox(height: 32.h),
+              _buildStartButton(context),
+              SizedBox(height: 48.h),
+            ],
+          ),
+        );
+      }),
     );
   }
 
@@ -81,14 +90,14 @@ class PracticeView extends GetView<PracticeController> {
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withOpacity(0.1)],
+          colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -112,7 +121,7 @@ class PracticeView extends GetView<PracticeController> {
                 Text(
                   'Customized sessions based on your mastery data.',
                   style: GoogleFonts.inter(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withOpacity(0.8),
                     fontSize: 12.sp,
                   ),
                 ),
@@ -125,71 +134,34 @@ class PracticeView extends GetView<PracticeController> {
     );
   }
 
-  Widget _buildConceptGrid(BuildContext context) {
+  Widget _buildTopicSelector(BuildContext context) {
     return Obx(
-      () => GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12.w,
-          mainAxisSpacing: 12.h,
-          childAspectRatio: 1.25,
+      () => Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withOpacity(0.1),
+          ),
         ),
-        itemCount: controller.concepts.length,
-        itemBuilder: (context, index) {
-          final concept = controller.concepts[index];
-          final isSelected = controller.selectedConcept.value == concept['id'];
-          final colors = concept['color'] as List<Color>;
-
-          return GestureDetector(
-            onTap: () {
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<CurriculumTopic>(
+            value: controller.selectedTopic.value,
+            isExpanded: true,
+            hint: const Text('Select a topic to practice'),
+            onChanged: (topic) {
               HapticUtils.selectionClick();
-              controller.selectConcept(concept['id'] as String);
+              controller.selectTopic(topic);
             },
-            child: Container(
-              decoration: BoxDecoration(
-                color: isSelected ? colors[0] : Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                  color: isSelected
-                      ? colors[0]
-                      : Theme.of(context).dividerColor.withOpacity(0.1),
-                  width: 2,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: colors[0].withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    concept['icon'] as IconData,
-                    color: isSelected ? Colors.white : colors[0],
-                    size: 28.sp,
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    concept['name'] as String,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : null,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+            items: controller.availableTopics.map((topic) {
+              return DropdownMenuItem(
+                value: topic,
+                child: Text(topic.name, style: GoogleFonts.inter()),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }
@@ -229,7 +201,7 @@ class PracticeView extends GetView<PracticeController> {
               data: SliderTheme.of(context).copyWith(
                 activeTrackColor: controller.difficultyColor,
                 thumbColor: controller.difficultyColor,
-                overlayColor: controller.difficultyColor.withOpacity(0.1),
+                overlayColor: controller.difficultyColor.withOpacity(0.2),
               ),
               child: Slider(
                 value: controller.difficulty.value,
@@ -292,7 +264,21 @@ class PracticeView extends GetView<PracticeController> {
       () => Column(
         children: controller.modes.map((mode) {
           final isSelected = controller.selectedMode.value == mode['id'];
-          final color = mode['color'] as Color;
+          final String modeId = mode['id'] as String;
+          final Color color;
+          switch (modeId) {
+            case 'practice':
+              color = Colors.blue;
+              break;
+            case 'exam':
+              color = Colors.red;
+              break;
+            case 'review':
+              color = Colors.green;
+              break;
+            default:
+              color = Colors.grey;
+          }
 
           return Padding(
             padding: EdgeInsets.only(bottom: 12.h),
@@ -321,7 +307,7 @@ class PracticeView extends GetView<PracticeController> {
                     Container(
                       padding: EdgeInsets.all(12.r),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
+                        color: color.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Icon(mode['icon'] as IconData, color: color),
@@ -365,7 +351,7 @@ class PracticeView extends GetView<PracticeController> {
     return Obx(
       () => NextButton(
         text: 'Start Practice Session',
-        onPressed: controller.selectedConcept.value == null
+        onPressed: controller.selectedTopic.value == null
             ? null
             : () {
                 HapticUtils.mediumImpact();

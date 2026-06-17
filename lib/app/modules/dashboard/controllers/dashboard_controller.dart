@@ -1,13 +1,14 @@
 import 'package:get/get.dart';
 import 'package:pcl/app/core/theme/app_theme.dart';
 import 'package:pcl/app/data/models/user_model.dart';
+import 'package:pcl/app/data/services/mock_api_service.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../data/models/course_model.dart';
 import '../../../data/models/analytics_model.dart';
+import '../../../data/services/auth_service.dart';
 import '../../../data/services/course_service.dart';
 import '../../../data/services/course_api_adapter.dart';
 import '../../../data/services/dashboard_service.dart';
-import '../../../data/services/mock_api_service.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../../main/controllers/main_controller.dart';
 import '../../../routes/app_pages.dart';
@@ -15,10 +16,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../data/services/exam_service.dart';
+import '../../../data/models/dashboard_api_models.dart';
+import '../../../data/models/dashboard_models.dart' hide RecentSession;
+import 'package:intl/intl.dart';
 
 class DashboardController extends GetxController {
   late final CourseService _courseService;
   late final DashboardService _dashboardService;
+  late final AuthService _authService;
 
   final stats = <String, dynamic>{}.obs;
   final enrolledCourses = <Course>[].obs;
@@ -29,6 +34,15 @@ class DashboardController extends GetxController {
   final Rxn<RecommendedTopic> recommendedTopic = Rxn<RecommendedTopic>();
   final Rx<User> user = User().obs;
   final heatmapData = <String, int>{}.obs;
+
+  // Phase 1: New state for mastery and progress
+  final masteryScores = <TopicMastery>[].obs;
+  final languageProgress = Rxn<StudentProgressResponse>();
+  final activeLangId = ''.obs;
+
+  // New state for advanced dashboard features
+  final transferBoosts = <TransferBoost>[].obs;
+  final synergyBonuses = <SynergyBonus>[].obs;
 
   final languages = [
     {'name': 'Python', 'id': 'python_3', 'icon': '🐍'},
@@ -46,7 +60,8 @@ class DashboardController extends GetxController {
     super.onInit();
     AppLogger.info('DashboardController.onInit(): loading dashboard data');
     _courseService = Get.find<CourseService>();
-    _dashboardService = Get.put(DashboardService()); // Instantiate locally
+    _dashboardService = Get.find<DashboardService>();
+    _authService = Get.find<AuthService>();
     fetchData();
   }
 
@@ -54,12 +69,11 @@ class DashboardController extends GetxController {
     AppLogger.info('DashboardController.fetchData(): start');
     isLoading.value = true;
     try {
-      final mockService = Get.find<MockApiService>();
       final examService = Get.find<ExamService>();
 
-      // Get user data from mock API service (until User Service is built)
-      final userData = mockService.getUser();
-      user.value = User.fromJson(userData);
+      // Get user data from real API
+      final userData = await _authService.getMe();
+      user.value = userData;
       AppLogger.debug(
         'DashboardController.fetchData(): user loaded id=${user.value.id}',
       );
@@ -88,7 +102,7 @@ class DashboardController extends GetxController {
         AppLogger.warning(
           'DashboardController.fetchData(): exam history unavailable, using mock stats',
         );
-        stats.assignAll(mockService.getUserStats());
+        stats.assignAll({}); // Fallback to empty stats
       }
 
       // Fetch enrolled courses via Real API
@@ -108,35 +122,99 @@ class DashboardController extends GetxController {
       ); // Can be fetched from getCurriculum later
 
       // Fetch dashboard summary for the first enrolled language (or python_3 as fallback)
-      final activeLangId = portfolio.languages.isNotEmpty
+      final activeLangIdValue = portfolio.languages.isNotEmpty
           ? portfolio.languages.first.languageId
           : 'python_3';
 
+      activeLangId.value = activeLangIdValue;
+
       try {
         final summary = await _dashboardService.getDashboardSummary(
-          activeLangId,
+          activeLangIdValue,
         );
         recommendedTopic.value = summary.recommendation;
+        if (summary.recentSessions.isNotEmpty) {
+          // Use real recent sessions data
+          _processHeatmapData(summary.recentSessions);
+        } else {
+          // Fallback to static dummy heatmap data from MockApiService
+          final mock = Get.find<MockApiService>();
+          heatmapData.assignAll(mock.getHeatmapData());
+        }
         AppLogger.info(
-          'DashboardController.fetchData(): dashboard summary loaded languageId=$activeLangId',
+          'DashboardController.fetchData(): dashboard summary loaded languageId=$activeLangIdValue',
         );
 
-        // Mock heatmap data for UI consistency until backend supports session heatmap API
-        heatmapData.assignAll(mockService.getHeatmapData());
+        // // Phase 1: Fetch mastery scores and language progress
+        // try {
+        //   final mastery = await _dashboardService.getMasteryScores(
+        //     activeLangIdValue,
+        //   );
+        //   masteryScores.assignAll(mastery);
+        //   AppLogger.info(
+        //     'DashboardController.fetchData(): mastery scores loaded count=${mastery.length}',
+        //   );
+        // } catch (e) {
+        //   AppLogger.warning(
+        //     'DashboardController.fetchData(): mastery scores unavailable',
+        //     e,
+        //   );
+        // }
+
+        try {
+          final progress = await _dashboardService.getLanguageProgress(
+            activeLangIdValue,
+          );
+          languageProgress.value = progress;
+          AppLogger.info(
+            'DashboardController.fetchData(): language progress loaded topics=${progress.topics.length}',
+          );
+        } catch (e) {
+          AppLogger.warning(
+            'DashboardController.fetchData(): language progress unavailable',
+            e,
+          );
+        }
+
+        // Fetch non-critical advanced features
+        // try {
+        //   final boosts = await _dashboardService.getActiveTransferBoosts(
+        //     activeLangIdValue,
+        //   );
+        //   transferBoosts.assignAll(boosts);
+        //   AppLogger.info(
+        //     'DashboardController.fetchData(): transfer boosts loaded count=${boosts.length}',
+        //   );
+        // } catch (e) {
+        //   AppLogger.warning(
+        //     'DashboardController.fetchData(): transfer boosts unavailable',
+        //     e,
+        //   );
+        // }
+
+        try {
+          final bonuses = await _dashboardService.getRecentSynergyBonuses(
+            activeLangIdValue,
+          );
+          synergyBonuses.assignAll(bonuses);
+          AppLogger.info(
+            'DashboardController.fetchData(): synergy bonuses loaded count=${bonuses.length}',
+          );
+        } catch (e) {
+          AppLogger.warning(
+            'DashboardController.fetchData(): synergy bonuses unavailable',
+            e,
+          );
+        }
       } catch (e, stackTrace) {
         AppLogger.warning(
-          'DashboardController.fetchData(): dashboard summary fallback for languageId=$activeLangId',
+          'DashboardController.fetchData(): dashboard summary fallback for languageId=$activeLangIdValue',
           e,
           stackTrace,
         );
-        // Fallback to mock for new users
-        final recommendationData = mockService.getAIRecommendation('python');
-        recommendedTopic.value = RecommendedTopic.fromJson(recommendationData);
-        heatmapData.assignAll(mockService.getHeatmapData());
-      }
-
-      if (mockService.lastEvaluation.isNotEmpty) {
-        aiEvaluation.assignAll(mockService.lastEvaluation);
+        // Fallback for new users
+        recommendedTopic.value = null;
+        heatmapData.assignAll({});
       }
     } catch (e, stackTrace) {
       AppLogger.error(
@@ -154,6 +232,17 @@ class DashboardController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void _processHeatmapData(List<RecentSession> sessions) {
+    final Map<String, int> data = {};
+    for (var session in sessions) {
+      final date = DateFormat(
+        'yyyy-MM-dd',
+      ).format(DateTime.parse(session.timestamp));
+      data[date] = (data[date] ?? 0) + 1;
+    }
+    heatmapData.assignAll(data);
   }
 
   void navigateToRecommendation() {
@@ -298,17 +387,16 @@ class DashboardController extends GetxController {
         ),
       );
 
-      if (source == null && source != false) {
-        // User chose to remove picture
+      if (source == null) {
+        // User chose to remove picture or cancelled dialog
         AppLogger.info(
           'DashboardController.changeProfilePicture(): removing picture',
         );
-        final service = Get.find<MockApiService>();
-        service.updateProfilePic(null);
+        // TODO: Add API call to remove profile picture
         fetchData();
         Get.snackbar(
           'Success',
-          'Profile picture removed',
+          'Profile picture removed (UI only)',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: AppColors.success.withOpacity(0.1),
           colorText: AppColors.success,
@@ -316,52 +404,49 @@ class DashboardController extends GetxController {
         return;
       }
 
-      if (source != null) {
-        // Request permissions based on source
-        Permission permission = source == ImageSource.camera
-            ? Permission.camera
-            : Permission.photos;
+      // Request permissions based on source
+      Permission permission = source == ImageSource.camera
+          ? Permission.camera
+          : Permission.photos;
 
-        PermissionStatus status = await permission.request();
+      PermissionStatus status = await permission.request();
 
-        if (!status.isGranted) {
-          AppLogger.warning(
-            'DashboardController.changeProfilePicture(): permission denied source=$source',
-          );
-          Get.snackbar(
-            'Permission Denied',
-            'Please grant ${source == ImageSource.camera ? "camera" : "storage"} permission to continue',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: AppColors.error.withOpacity(0.1),
-            colorText: AppColors.error,
-          );
-          return;
-        }
-
-        final XFile? image = await picker.pickImage(
-          source: source,
-          maxWidth: 512,
-          maxHeight: 512,
-          imageQuality: 85,
+      if (!status.isGranted) {
+        AppLogger.warning(
+          'DashboardController.changeProfilePicture(): permission denied source=$source',
         );
+        Get.snackbar(
+          'Permission Denied',
+          'Please grant ${source == ImageSource.camera ? "camera" : "storage"} permission to continue',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: AppColors.error.withValues(alpha: 0.1),
+          colorText: AppColors.error,
+        );
+        return;
+      }
 
-        if (image != null) {
-          AppLogger.info(
-            'DashboardController.changeProfilePicture(): image selected path=${image.path}',
-          );
-          final service = Get.find<MockApiService>();
-          service.updateProfilePic(image.path);
-          fetchData();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
 
-          HapticUtils.lightImpact();
-          Get.snackbar(
-            'Success',
-            'Profile picture updated successfully',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: AppColors.success.withOpacity(0.1),
-            colorText: AppColors.success,
-          );
-        }
+      if (image != null) {
+        AppLogger.info(
+          'DashboardController.changeProfilePicture(): image selected path=${image.path}',
+        );
+        // TODO: Add API call to upload profile picture
+        fetchData();
+
+        HapticUtils.lightImpact();
+        Get.snackbar(
+          'Success',
+          'Profile picture updated successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: AppColors.success.withValues(alpha: 0.1),
+          colorText: AppColors.success,
+        );
       }
     } catch (e, stackTrace) {
       AppLogger.error(

@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/next_components.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../../../data/models/achievement_model.dart';
+import '../widgets/session_history_list.dart';
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
@@ -255,7 +256,7 @@ class ProfileView extends GetView<ProfileController> {
           context,
           'Notifications',
           'Configure your alerts',
-          () {},
+          () => Get.toNamed(Routes.notifications),
           icon: Icons.notifications_none_rounded,
           iconColor: Colors.orange,
         ),
@@ -769,6 +770,47 @@ class ProfileView extends GetView<ProfileController> {
               color: isDark ? Colors.grey[600] : Colors.grey[400],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSessionHistoryList(BuildContext context) {
+    return Obx(() {
+      if (controller.sessionHistory.isEmpty) {
+        return const Center(child: Text('No session history available.'));
+      }
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: controller.sessionHistory.length,
+        itemBuilder: (context, index) {
+          final session = controller.sessionHistory[index];
+          return _buildSessionHistoryItem(context, session);
+        },
+      );
+    });
+  }
+
+  Widget _buildSessionHistoryItem(BuildContext context, dynamic session) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ListTile(
+      leading: Icon(
+        session.sessionType == 'exam'
+            ? Icons.assignment_turned_in_outlined
+            : Icons.model_training_outlined,
+        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+      ),
+      title: Text(session.topicName),
+      subtitle: Text(
+        'Score: ${session.overallScore.toStringAsFixed(2)} - ${session.completedAt}',
+      ),
+      trailing: Text(
+        '${session.timeTakenSeconds ~/ 60} min',
+        style: TextStyle(
+          color: isDark
+              ? AppColors.darkTextSecondary
+              : AppColors.lightTextSecondary,
         ),
       ),
     );

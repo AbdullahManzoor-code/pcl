@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:pcl/app/data/services/auth_service.dart';
 import 'package:pcl/app/routes/app_pages.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/services/auth_service.dart';
-import '../../../data/services/mock_api_service.dart';
 import '../../../data/services/notification_service.dart';
 import '../../../data/services/theme_service.dart';
+import '../../../data/services/exam_service.dart';
+import '../../../data/services/achievement_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/next_components.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -17,6 +19,9 @@ import '../../../data/models/achievement_model.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/utils/haptic_utils.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../../data/models/exam_api_models.dart';
+import '../../../data/services/exam_service.dart';
+import '../../../data/services/achievement_service.dart';
 
 class ProfileController extends GetxController {
   final _validationService = Get.find<ValidationService>();
@@ -24,6 +29,8 @@ class ProfileController extends GetxController {
   final NotificationService _notificationService =
       Get.find<NotificationService>();
   final AuthService _authService = Get.find<AuthService>();
+  final ExamService _examService = Get.find<ExamService>();
+  final AchievementService _achievementService = Get.find<AchievementService>();
 
   final user = Rxn<User>();
   final isLoading = true.obs;
@@ -36,6 +43,7 @@ class ProfileController extends GetxController {
   final altEmailValue = ''.obs;
   final profileImageUrl = Rxn<String>();
   final achievements = <Achievement>[].obs;
+  final sessionHistory = <SessionHistoryItem>[].obs;
 
   // Password Change Fields
   final currentPasswordController = TextEditingController();
@@ -83,37 +91,53 @@ class ProfileController extends GetxController {
       final storedPhone = storage.read('userPhone') ?? '+1 (555) 000-0000';
 
       // Initialize form fields
-      nameValue.value = storedName;
+      nameValue.value = realUser.name ?? storedName;
       usernameValue.value = realUser.email?.split('@').first ?? 'user';
       emailValue.value = realUser.email ?? '';
-      phoneValue.value = storedPhone;
-      altEmailValue.value = 'secondary@example.com';
-      profileImageUrl.value = storage.read('profilePicUrl') ?? null;
+      phoneValue.value = realUser.phone ?? storedPhone;
+      altEmailValue.value = realUser.altEmail ?? 'secondary@example.com';
+      profileImageUrl.value =
+          realUser.profilePicUrl ?? storage.read('profilePicUrl');
 
-      // Mock Achievements until backend supports them
-      final mockService = Get.find<MockApiService>();
-      final achData = mockService.getAllAchievements();
-      achievements.assignAll(
-        achData
-            .map(
-              (e) => Achievement.fromJson(
-                e,
-                icon: _getIconForCategory(e['category']),
-                color: _getColorForCategory(e['category']),
-              ),
-            )
-            .toList(),
-      );
-      AppLogger.info(
-        'ProfileController.fetchProfile(): achievements=${achievements.length}',
-      );
+      // Fetch real achievements
+      try {
+        final achData = await _achievementService.getAchievements();
+        achievements.assignAll(achData);
+        AppLogger.info(
+          'ProfileController.fetchProfile(): achievements loaded count=${achievements.length}',
+        );
+      } catch (e) {
+        AppLogger.error(
+          'ProfileController.fetchProfile(): failed to load achievements',
+          e,
+        );
+        achievements.assignAll([]);
+      }
+
+      // Fetch session history
+      try {
+        final history = await _examService.getExamHistory(limit: 5);
+        sessionHistory.assignAll(history.sessions);
+        AppLogger.info(
+          'ProfileController.fetchProfile(): session history=${sessionHistory.length}',
+        );
+      } catch (e) {
+        AppLogger.error(
+          'ProfileController.fetchProfile(): failed to load session history',
+          e,
+        );
+      }
     } catch (e, stackTrace) {
       AppLogger.error(
         'ProfileController.fetchProfile(): failed',
         e,
         stackTrace,
       );
-      Get.snackbar('Error', 'Failed to fetch user profile.');
+      Get.snackbar(
+        'Error',
+        'Failed to load profile. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -176,10 +200,11 @@ class ProfileController extends GetxController {
         AppLogger.info(
           'ProfileController.changeProfilePicture(): removing profile picture',
         );
-        final service = Get.find<MockApiService>();
-        service.updateProfilePic(null);
+        // TODO: Implement API call to remove profile picture
+        // For now, just clear locally
         profileImageUrl.value = null;
-        fetchProfile();
+        GetStorage().remove('profilePicUrl');
+        user.value = user.value?.copyWith(profilePicUrl: null);
 
         HapticUtils.lightImpact();
         Get.snackbar(
@@ -225,10 +250,11 @@ class ProfileController extends GetxController {
           AppLogger.info(
             'ProfileController.changeProfilePicture(): image selected path=${image.path}',
           );
-          final service = Get.find<MockApiService>();
-          service.updateProfilePic(image.path);
+          // TODO: Implement API call to upload profile picture
+          // For now, save locally and update UI
           profileImageUrl.value = image.path;
-          fetchProfile();
+          GetStorage().write('profilePicUrl', image.path);
+          user.value = user.value?.copyWith(profilePicUrl: image.path);
 
           HapticUtils.lightImpact();
           Get.snackbar(
@@ -298,34 +324,49 @@ class ProfileController extends GetxController {
 
     AppLogger.info('ProfileController.updateProfile(): submitted');
     isLoading.value = true;
+
+    // Prepare only changed data
+    final Map<String, dynamic> changes = {};
+    if (nameValue.value.trim() != user.value?.name) {
+      changes['name'] = nameValue.value.trim();
+    }
+    if (emailValue.value.trim() != user.value?.email) {
+      changes['email'] = emailValue.value.trim();
+    }
+    if (phoneValue.value.trim() != user.value?.phone) {
+      changes['phone'] = phoneValue.value.trim();
+    }
+    if (altEmailValue.value.trim() != user.value?.altEmail) {
+      changes['alt_email'] = altEmailValue.value.trim();
+    }
+
+    if (changes.isEmpty) {
+      AppLogger.info('ProfileController.updateProfile(): no changes detected');
+      isLoading.value = false;
+      Get.snackbar('Info', 'No changes to save.');
+      return;
+    }
+
     try {
-      await Future.delayed(const Duration(milliseconds: 1000)); // Mock delay
-
-      final mockApi = Get.find<MockApiService>();
-      mockApi.updateProfile(nameValue.value.trim());
-
-      final currentUser = user.value!;
-      user.value = currentUser.copyWith(name: nameValue.value.trim());
-
-      final storage = GetStorage();
-      storage.write('userName', nameValue.value.trim());
-      storage.write('userEmail', emailValue.value.trim());
-      storage.write('userPhone', phoneValue.value.trim());
+      final updatedUser = await _authService.updateProfile(changes);
+      user.value = updatedUser; // Update local state with response
 
       AppLogger.info('ProfileController.updateProfile(): success');
+      Get.back(); // Close the bottom sheet
       Get.snackbar(
         'Success',
         'Profile updated successfully',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Get.theme.primaryColor.withOpacity(0.1),
+        backgroundColor: AppColors.success.withOpacity(0.1),
+        colorText: AppColors.success,
       );
     } catch (e, stackTrace) {
       AppLogger.error(
-        'ProfileController.updateProfile(): failed',
+        'ProfileController.updateProfile(): API call failed',
         e,
         stackTrace,
       );
-      Get.snackbar('Error', 'Failed to update profile.');
+      Get.snackbar('Error', 'Failed to update profile. Please try again.');
     } finally {
       isLoading.value = false;
     }
