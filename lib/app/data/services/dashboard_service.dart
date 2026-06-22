@@ -151,30 +151,59 @@ class DashboardService extends GetxService {
     }
   }
 
-  // Removed getActiveTransferBoosts – no corresponding API endpoint required.
+  /// GET /api/transfer/active-boosts - Get active cross-language transfer boosts
+  Future<List<TransferBoost>> getActiveTransferBoosts(String languageId) async {
+    try {
+      return await NetworkErrorHandler.executeWithRetry(() async {
+        final response = await http
+            .get(
+              Uri.parse(
+                '$apiBaseUrl/api/transfer/active-boosts?language_id=$languageId',
+              ),
+              headers: _headers,
+            )
+            .timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          final List<dynamic> data = jsonDecode(response.body);
+          return data.map((item) => TransferBoost.fromJson(item)).toList();
+        } else {
+          throw _handleError(response);
+        }
+      }, operationName: 'GetActiveTransferBoosts');
+    } catch (e) {
+      AppLogger.warning('DashboardService.getActiveTransferBoosts(): failed, returning empty list. Error: $e');
+      return [];
+    }
+  }
 
   /// GET /api/synergy/recent-bonuses - Get recent synergy bonuses
   Future<List<SynergyBonus>> getRecentSynergyBonuses(
     String languageId, {
     int days = 7,
   }) async {
-    return NetworkErrorHandler.executeWithRetry(() async {
-      final response = await http
-          .get(
-            Uri.parse(
-              '$apiBaseUrl/api/synergy/recent-bonuses?language_id=$languageId&days=$days',
-            ),
-            headers: _headers,
-          )
-          .timeout(const Duration(seconds: 10));
+    try {
+      return await NetworkErrorHandler.executeWithRetry(() async {
+        final response = await http
+            .get(
+              Uri.parse(
+                '$apiBaseUrl/api/synergy/recent-bonuses?language_id=$languageId&days=$days',
+              ),
+              headers: _headers,
+            )
+            .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((item) => SynergyBonus.fromJson(item)).toList();
-      } else {
-        throw _handleError(response);
-      }
-    }, operationName: 'GetRecentSynergyBonuses');
+        if (response.statusCode == 200) {
+          final List<dynamic> data = jsonDecode(response.body);
+          return data.map((item) => SynergyBonus.fromJson(item)).toList();
+        } else {
+          throw _handleError(response);
+        }
+      }, operationName: 'GetRecentSynergyBonuses');
+    } catch (e) {
+      AppLogger.warning('DashboardService.getRecentSynergyBonuses(): failed, returning empty list. Error: $e');
+      return [];
+    }
   }
 
   Exception _handleError(http.Response response) {

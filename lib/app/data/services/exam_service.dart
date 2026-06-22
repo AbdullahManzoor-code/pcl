@@ -153,6 +153,21 @@ class ExamService extends GetxService {
     }, operationName: 'GetExamHistory');
   }
 
+  Future<void> closeQuestionSession(String sessionId) async {
+    return NetworkErrorHandler.executeWithRetry(() async {
+      final response = await http
+          .delete(
+            Uri.parse('$apiBaseUrl/question-bank/session/$sessionId'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw _handleError(response);
+      }
+    }, operationName: 'CloseQuestionSession');
+  }
+
   Exception _handleError(http.Response response) {
     try {
       final errorData = jsonDecode(response.body);

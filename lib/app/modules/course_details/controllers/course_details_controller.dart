@@ -188,16 +188,29 @@ class CourseDetailsController extends GetxController {
     }
   }
 
-  void startTest(Topic topic, int numQuestions) {
+  void startTest(Topic topic, int numQuestions) async {
     AppLogger.info(
       'CourseDetailsController.startTest(): topicId=${topic.id}, numQuestions=$numQuestions',
     );
+    
+    // We need to find the mappingId from the curriculum
+    final curriculums = await _courseService.getCurriculum();
+    final roadmap = curriculums.firstWhereOrNull((c) => c.languageId == course.value?.id)?.roadmap ?? [];
+    final currTopic = roadmap.firstWhereOrNull((ct) => ct.majorTopicId == topic.id);
+    final mappingId = currTopic?.mappingId ?? 'UNIV_VAR';
+    final languageId = course.value?.id ?? 'python';
+
     Get.toNamed(
       Routes.quiz,
       arguments: {
-        'courseId': course.value?.id,
-        'topicId': topic.id,
+        'sessionId': '',
+        'startTime': null,
+        'languageId': languageId,
+        'mappingId': mappingId,
+        'majorTopicId': topic.id,
         'numQuestions': numQuestions,
+        'mode': 'practice',
+        'difficulty': 0.5,
         'isDiagnostic': false,
       },
     );
@@ -207,7 +220,17 @@ class CourseDetailsController extends GetxController {
     AppLogger.info('CourseDetailsController.handleDemoTest(): tapped');
     Get.toNamed(
       Routes.quiz,
-      arguments: {'courseId': course.value?.id, 'isDiagnostic': true},
+      arguments: {
+        'sessionId': '',
+        'startTime': null,
+        'languageId': course.value?.id ?? 'python',
+        'mappingId': 'UNIV_VAR',
+        'majorTopicId': 'python_intro',
+        'numQuestions': 10,
+        'mode': 'exam',
+        'difficulty': 0.5,
+        'isDiagnostic': true,
+      },
     );
   }
 
@@ -228,7 +251,20 @@ class CourseDetailsController extends GetxController {
     }
 
     if (subTopic.type == 'quiz') {
-      Get.toNamed(Routes.quiz, arguments: subTopic);
+      Get.toNamed(
+        Routes.quiz, 
+        arguments: {
+          'sessionId': '',
+          'startTime': null,
+          'languageId': course.value?.id ?? 'python',
+          'mappingId': 'UNIV_VAR',
+          'majorTopicId': 'python_intro',
+          'numQuestions': 5,
+          'mode': 'practice',
+          'difficulty': 0.5,
+          'isDiagnostic': false,
+        }
+      );
     } else {
       AppLogger.debug(
         'CourseDetailsController.openSubTopic(): opening lesson ${subTopic.id}',

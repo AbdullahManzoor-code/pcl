@@ -33,7 +33,9 @@ class DashboardController extends GetxController {
   final aiEvaluation = <String, dynamic>{}.obs;
   final Rxn<RecommendedTopic> recommendedTopic = Rxn<RecommendedTopic>();
   final Rx<User> user = User().obs;
-  final heatmapData = <String, int>{}.obs;
+  final heatmapDays = <String, HeatmapDay>{}.obs;
+  final heatmapFilter = 'month'.obs; // 'week' | 'month' | '6m' | 'year'
+  final isHeatmapLoading = false.obs;
 
   // Phase 1: New state for mastery and progress
   final masteryScores = <TopicMastery>[].obs;
@@ -133,14 +135,7 @@ class DashboardController extends GetxController {
           activeLangIdValue,
         );
         recommendedTopic.value = summary.recommendation;
-        if (summary.recentSessions.isNotEmpty) {
-          // Use real recent sessions data
-          _processHeatmapData(summary.recentSessions);
-        } else {
-          // Fallback to static dummy heatmap data from MockApiService
-          final mock = Get.find<MockApiService>();
-          heatmapData.assignAll(mock.getHeatmapData());
-        }
+        // Heatmap data is fetched separately via getExamHistory (365 days)
         AppLogger.info(
           'DashboardController.fetchData(): dashboard summary loaded languageId=$activeLangIdValue',
         );
@@ -214,8 +209,10 @@ class DashboardController extends GetxController {
         );
         // Fallback for new users
         recommendedTopic.value = null;
-        heatmapData.assignAll({});
       }
+
+      // Fetch full 365-day history for heatmap (non-blocking, after main data)
+      _fetchHeatmapData(activeLangIdValue);
     } catch (e, stackTrace) {
       AppLogger.error(
         'DashboardController.fetchData(): failed to load dashboard data',
@@ -234,18 +231,46 @@ class DashboardController extends GetxController {
     }
   }
 
-  void _processHeatmapData(List<RecentSession> sessions) {
-    final Map<String, int> data = {};
-    for (var session in sessions) {
-      final date = DateFormat(
-        'yyyy-MM-dd',
-      ).format(DateTime.parse(session.timestamp));
-      data[date] = (data[date] ?? 0) + 1;
+  Future<void> _fetchHeatmapData(String langId) async {
+    AppLogger.info('DashboardController._fetchHeatmapData(): fetching 365-day history');
+    isHeatmapLoading.value = true;
+    try {
+      final examService = Get.find<ExamService>();
+      final history = await examService.getExamHistory(
+        languageId: langId.isNotEmpty ? langId : null,
+        limit: 365,
+      );
+      final Map<String, HeatmapDay> result = {};
+      final fmt = DateFormat('yyyy-MM-dd');
+      for (final s in history.sessions) {
+        final key = fmt.format(s.completedAt);
+        final existing = result[key];
+        if (existing == null) {
+          result[key] = HeatmapDay(sessionCount: 1, avgScore: s.accuracy);
+        } else {
+          final newCount = existing.sessionCount + 1;
+          final newAvg =
+              ((existing.avgScore * existing.sessionCount) + s.accuracy) /
+              newCount;
+          result[key] = HeatmapDay(sessionCount: newCount, avgScore: newAvg);
+        }
+      }
+      heatmapDays.assignAll(result);
+      AppLogger.info(
+        'DashboardController._fetchHeatmapData(): loaded ${result.length} active days',
+      );
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'DashboardController._fetchHeatmapData(): failed',
+        e,
+        stackTrace,
+      );
+    } finally {
+      isHeatmapLoading.value = false;
     }
-    heatmapData.assignAll(data);
   }
 
-  void navigateToRecommendation() {
+  void navigateToRecommendation() async {
     AppLogger.info('DashboardController.navigateToRecommendation(): tapped');
     try {
       final rec = recommendedTopic.value;
@@ -261,15 +286,25 @@ class DashboardController extends GetxController {
         return;
       }
 
+      // We need to find the mappingId from the curriculum
+      final curriculums = await _courseService.getCurriculum();
+      final roadmap = curriculums.firstWhereOrNull((c) => c.languageId == activeLangId.value)?.roadmap ?? [];
+      final currTopic = roadmap.firstWhereOrNull((ct) => ct.majorTopicId == rec.conceptId);
+      final mappingId = currTopic?.mappingId ?? 'UNIV_VAR';
+
       // Navigate to quiz directly
       Get.toNamed(
         Routes.quiz,
         arguments: {
-          'conceptId': rec.conceptId,
-          'conceptName': rec.conceptName,
-          'difficulty': rec.targetDifficulty,
+          'sessionId': '',
+          'startTime': null,
+          'languageId': activeLangId.value,
+          'mappingId': mappingId,
+          'majorTopicId': rec.conceptId,
           'numQuestions': 10,
           'mode': 'exam', // Encourage testing
+          'difficulty': rec.targetDifficulty,
+          'isDiagnostic': false,
         },
       );
     } catch (e, stackTrace) {

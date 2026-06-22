@@ -1,5 +1,15 @@
 import 'analytics_model.dart';
 
+/// Holds aggregated activity data for a single calendar day.
+class HeatmapDay {
+  final int sessionCount;
+  final double avgScore; // 0.0 – 1.0
+
+  const HeatmapDay({required this.sessionCount, required this.avgScore});
+}
+
+
+
 class RecentSession {
   final String id;
   final String timestamp;

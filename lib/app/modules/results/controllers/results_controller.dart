@@ -158,7 +158,8 @@ class ResultsController extends GetxController {
     AppLogger.info(
       'ResultsController.handlePracticeAgain(): courseId=${courseId.value}',
     );
-    Get.offNamed(Routes.quiz, arguments: courseId.value);
+    // Route to practice screen with concept pre-selected as per earlier requirement
+    Get.toNamed(Routes.practice, arguments: {'concept': conceptName.value});
   }
 
   void practiceTopic(String topicName) {

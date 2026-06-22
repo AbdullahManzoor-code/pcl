@@ -23,16 +23,22 @@ class QuizController extends GetxController with WidgetsBindingObserver {
   final currentIndex = 0.obs;
   final answers = <int, dynamic>{}.obs;
   final timeLeft = 1800.obs; // 30 mins default
-  final isLoading = true.obs;
+  final isInitializingSession = true.obs;
+  final isSelectingQuestions = false.obs;
+  final isPollingQuestions = false.obs;
   final isDiagnostic = false.obs;
 
-  String courseId = '';
-  String topicId = '';
+  String languageId = '';
+  String mappingId = '';
+  String majorTopicId = '';
   int numQuestions = 10;
+  String mode = 'practice';
+  double difficulty = 0.5;
   String sessionId = '';
   DateTime? startTime;
 
   Timer? _timer;
+  bool _isSubmitted = false;
 
   @override
   void onInit() {
@@ -42,13 +48,23 @@ class QuizController extends GetxController with WidgetsBindingObserver {
     final args = Get.arguments;
     if (args != null) {
       if (args is Map<String, dynamic>) {
-        courseId = args['courseId'] ?? '';
-        topicId = args['topicId'] ?? courseId;
+        languageId = args['languageId'] ?? '';
+        mappingId = args['mappingId'] ?? '';
+        majorTopicId = args['majorTopicId'] ?? mappingId;
         numQuestions = args['numQuestions'] ?? 10;
+        mode = args['mode'] ?? 'practice';
+        difficulty = args['difficulty'] ?? 0.5;
         isDiagnostic.value = args['isDiagnostic'] ?? false;
+        if (args.containsKey('sessionId')) {
+          sessionId = args['sessionId'];
+        }
+        if (args.containsKey('startTime')) {
+          startTime = args['startTime'];
+        }
       } else if (args is String) {
-        courseId = args;
-        topicId = args;
+        languageId = args;
+        mappingId = args;
+        majorTopicId = args;
       }
       if (numQuestions < _minimumSubmitQuestions) {
         AppLogger.warning(
@@ -57,7 +73,7 @@ class QuizController extends GetxController with WidgetsBindingObserver {
         numQuestions = _minimumSubmitQuestions;
       }
       AppLogger.info(
-        'QuizController.onInit(): courseId=$courseId, topicId=$topicId, numQuestions=$numQuestions, diagnostic=${isDiagnostic.value}',
+        'QuizController.onInit(): languageId=$languageId, mappingId=$mappingId, numQuestions=$numQuestions, diagnostic=${isDiagnostic.value}',
       );
       _initializeExam();
     } else {
@@ -89,15 +105,20 @@ class QuizController extends GetxController with WidgetsBindingObserver {
       _timer?.cancel();
     } else if (state == AppLifecycleState.resumed) {
       // App came back to foreground -> resume timer if not finished
-      if (timeLeft.value > 0 && !isLoading.value) {
-        startTimer();
+      if (state == AppLifecycleState.resumed) {
+        // App came back to foreground -> resume timer if not finished
+        if (timeLeft.value > 0 &&
+            !isInitializingSession.value &&
+            !isSelectingQuestions.value) {
+          startTimer();
+        }
       }
     }
   }
 
   Future<void> _initializeExam() async {
     AppLogger.info('QuizController._initializeExam(): start');
-    isLoading.value = true;
+    isInitializingSession.value = true;
     try {
       String? userId = _authService.getStoredUser()?.id;
       userId ??= _storage.read('userId') as String?;
@@ -141,7 +162,7 @@ class QuizController extends GetxController with WidgetsBindingObserver {
         return;
       }
 
-      final backupKey = 'exam_backup_${courseId}_$topicId';
+      final backupKey = 'exam_backup_${languageId}_$mappingId';
 
       // Check for backup
       final backup = _storage.read(backupKey);
@@ -182,102 +203,143 @@ class QuizController extends GetxController with WidgetsBindingObserver {
         AppLogger.info(
           'QuizController._initializeExam(): starting fresh exam session',
         );
-        final startReq = ExamStartRequest(
-          userId: userId,
-          languageId: courseId,
-          majorTopicId: topicId,
-          sessionType: isDiagnostic.value ? 'diagnostic' : 'practice',
-        );
-        final startRes = await _examService.startExamSession(startReq);
-        sessionId = startRes.sessionId;
-        startTime = startRes.startedAt;
+        if (sessionId.isEmpty) {
+          final startReq = ExamStartRequest(
+            userId: userId,
+            languageId: languageId,
+            majorTopicId: majorTopicId,
+            sessionType: mode,
+          );
+          final startRes = await _examService.startExamSession(startReq);
+          sessionId = startRes.sessionId;
+          startTime = startRes.startedAt;
+        }
+
+        isInitializingSession.value = false;
+        isSelectingQuestions.value = true;
 
         final selectReq = SelectQuestionsRequest(
           userId: userId,
           sessionId: sessionId,
-          languageId: courseId,
-          mappingId: topicId,
-          targetDifficulty: 0.5,
+          languageId: languageId,
+          mappingId: mappingId,
+          targetDifficulty: difficulty,
           count: numQuestions,
-          mode: isDiagnostic.value ? 'review' : 'practice',
+          mode: mode,
         );
         final selectRes = await _examService.selectQuestions(selectReq);
         questions.assignAll(selectRes.questions);
+        isSelectingQuestions.value = false;
 
         if (questions.isEmpty || selectRes.moreQuestionsLoading) {
-          AppLogger.warning(
-            'QuizController._initializeExam(): initial question selection empty; polling for generated questions (sessionId=$sessionId)',
-          );
-          for (int attempt = 0; attempt < 5 && questions.isEmpty; attempt++) {
-            await Future.delayed(const Duration(seconds: 2));
-            final pollRes = await _examService.pollNewQuestions(sessionId);
-            if (pollRes.questions.isNotEmpty) {
-              questions.assignAll(pollRes.questions);
-              AppLogger.info(
-                'QuizController._initializeExam(): poll attempt ${attempt + 1} loaded ${pollRes.questions.length} questions',
-              );
-              break;
-            }
-          }
+          _startBackgroundPolling();
+        } else {
+          _precacheMediaAndStartTimer();
         }
-
-        if (questions.length < _minimumSubmitQuestions) {
-          throw Exception(
-            'At least $_minimumSubmitQuestions questions are required to start the exam.',
-          );
-        }
-
-        // Pre-cache media
-        if (Get.context != null) {
-          for (var q in questions) {
-            if (q.questionData.mediaUrl != null) {
-              try {
-                await precacheImage(
-                  NetworkImage(q.questionData.mediaUrl!),
-                  Get.context!,
-                );
-              } catch (e, stackTrace) {
-                AppLogger.warning(
-                  'QuizController._initializeExam(): failed to precache image',
-                  e,
-                  stackTrace,
-                );
-              }
-            }
-          }
-        }
-
-        if (questions.isEmpty) {
-          throw Exception('No questions available for this session yet.');
-        }
-
-        timeLeft.value = questions.length * 90;
-
-        // Save initial backup
-        _storage.write(
-          '${backupKey}_questions',
-          questions.map((q) => q.toJson()).toList(),
-        );
-        _storage.remove(backupKey);
+      } else {
+        isInitializingSession.value = false;
+        _precacheMediaAndStartTimer();
       }
-
-      startTimer();
     } catch (e, stackTrace) {
       AppLogger.error(
         'QuizController._initializeExam(): failed',
         e,
         stackTrace,
       );
-      Get.snackbar('Error', 'Failed to start exam session.');
-    } finally {
-      isLoading.value = false;
+      isInitializingSession.value = false;
+      isSelectingQuestions.value = false;
+      Get.snackbar('Error', 'Failed to load test. Please try again.');
     }
+  }
+
+  Future<void> _startBackgroundPolling() async {
+    isPollingQuestions.value = true;
+    AppLogger.info(
+      'QuizController._startBackgroundPolling(): polling started for $sessionId',
+    );
+
+    try {
+      bool moreLoading = true;
+      int attempts = 0;
+      while (moreLoading && attempts < 30) {
+        await Future.delayed(const Duration(seconds: 2));
+        final pollRes = await _examService.pollNewQuestions(sessionId);
+
+        if (pollRes.questions.isNotEmpty) {
+          // Add only new questions that aren't already in the list
+          final existingIds = questions.map((q) => q.id).toSet();
+          final newQuestions = pollRes.questions
+              .where((q) => !existingIds.contains(q.id))
+              .toList();
+
+          if (newQuestions.isNotEmpty) {
+            questions.addAll(newQuestions);
+            AppLogger.info(
+              'QuizController._startBackgroundPolling(): added ${newQuestions.length} new questions',
+            );
+          }
+        }
+
+        // If we hit our target count or backend says no more loading
+        if (!pollRes.moreQuestionsLoading || questions.length >= numQuestions) {
+          moreLoading = false;
+        }
+        attempts++;
+      }
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'QuizController._startBackgroundPolling(): failed',
+        e,
+        stackTrace,
+      );
+    } finally {
+      isPollingQuestions.value = false;
+      AppLogger.info(
+        'QuizController._startBackgroundPolling(): polling stopped',
+      );
+      if (questions.isEmpty && Get.isSnackbarOpen != true) {
+        Get.snackbar(
+          'Notice',
+          'Failed to generate enough questions. Please try again later.',
+        );
+      } else if (questions.isNotEmpty) {
+        _precacheMediaAndStartTimer();
+      }
+    }
+  }
+
+  void _precacheMediaAndStartTimer() async {
+    if (questions.length < _minimumSubmitQuestions) {
+      AppLogger.warning(
+        'QuizController: only ${questions.length} questions loaded. Minimum is $_minimumSubmitQuestions.',
+      );
+    }
+
+    if (Get.context != null) {
+      for (var q in questions) {
+        if (q.questionData.mediaUrl != null) {
+          try {
+            await precacheImage(
+              NetworkImage(q.questionData.mediaUrl!),
+              Get.context!,
+            );
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+    }
+    startTimer();
   }
 
   void startTimer() {
     AppLogger.debug('QuizController.startTimer(): starting countdown');
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_isSubmitted) {
+        timer.cancel();
+        return;
+      }
       if (timeLeft.value > 0) {
         timeLeft.value--;
         if (timeLeft.value % 10 == 0) _saveBackup(); // Backup every 10s
@@ -289,8 +351,9 @@ class QuizController extends GetxController with WidgetsBindingObserver {
   }
 
   void _saveBackup() {
+    if (_isSubmitted) return; // Don't backup after submission
     AppLogger.debug('QuizController._saveBackup(): saving progress backup');
-    final backupKey = 'exam_backup_${courseId}_$topicId';
+    final backupKey = 'exam_backup_${languageId}_$mappingId';
     _storage.write(backupKey, {
       'sessionId': sessionId,
       'timeLeft': timeLeft.value,
@@ -330,9 +393,11 @@ class QuizController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> submitQuiz() async {
+    if (_isSubmitted) return; // Prevent double submission
     AppLogger.info('QuizController.submitQuiz(): submitting exam');
+    _isSubmitted = true;
     _timer?.cancel();
-    isLoading.value = true;
+    isInitializingSession.value = true;
 
     try {
       if (questions.length < _minimumSubmitQuestions) {
@@ -344,7 +409,7 @@ class QuizController extends GetxController with WidgetsBindingObserver {
           'At least $_minimumSubmitQuestions questions are required before submitting.',
           snackPosition: SnackPosition.BOTTOM,
         );
-        isLoading.value = false;
+        isInitializingSession.value = false;
         return;
       }
 
@@ -405,7 +470,7 @@ class QuizController extends GetxController with WidgetsBindingObserver {
         results.add(
           QuestionResultPayload(
             qId: q.id,
-            subTopic: q.subTopic ?? topicId,
+            subTopic: q.subTopic ?? majorTopicId,
             difficulty: q.difficulty,
             isCorrect: isCorrect,
             selectedChoice: selectedChoice,
@@ -421,8 +486,8 @@ class QuizController extends GetxController with WidgetsBindingObserver {
       final payload = ExamSubmissionPayload(
         userId: userId,
         sessionId: sessionId,
-        languageId: courseId,
-        majorTopicId: topicId,
+        languageId: languageId,
+        majorTopicId: majorTopicId,
         sessionType: isDiagnostic.value ? 'diagnostic' : 'practice',
         results: results,
         totalTimeSeconds: elapsedSeconds,
@@ -438,7 +503,7 @@ class QuizController extends GetxController with WidgetsBindingObserver {
           'Not enough answered questions to submit the exam.',
           snackPosition: SnackPosition.BOTTOM,
         );
-        isLoading.value = false;
+        isInitializingSession.value = false;
         return;
       }
 
@@ -451,7 +516,7 @@ class QuizController extends GetxController with WidgetsBindingObserver {
           'Invalid exam time recorded. Try again.',
           snackPosition: SnackPosition.BOTTOM,
         );
-        isLoading.value = false;
+        isInitializingSession.value = false;
         return;
       }
 
@@ -460,14 +525,26 @@ class QuizController extends GetxController with WidgetsBindingObserver {
         'QuizController.submitQuiz(): submission complete newMastery=${response.newMasteryScore}',
       );
 
-      // Clear backup
-      _storage.remove('exam_backup_${courseId}_$topicId');
+      try {
+        await _examService.closeQuestionSession(sessionId);
+        AppLogger.info('QuizController.submitQuiz(): closed question session');
+      } catch (closeError) {
+        AppLogger.warning(
+          'QuizController.submitQuiz(): failed to close session: $closeError',
+        );
+      }
 
-      if (response.newMasteryScore > 0) {
-        LevelUpOverlay.show(
-          (response.newMasteryScore * 100).toInt(),
-        ); // Mock level
-        await Future.delayed(const Duration(seconds: 1));
+      // Clear backup
+      _storage.remove('exam_backup_${languageId}_$mappingId');
+
+      if (response.newMasteryScore > 0 || response.accuracy > 0) {
+        await LevelUpOverlay.show(
+          accuracy: response.accuracy,
+          newMasteryScore: response.newMasteryScore,
+          fluencyRatio: response.fluencyRatio,
+          topicName: majorTopicId.replaceAll('_', ' ').capitalizeFirst ?? majorTopicId,
+          recommendations: response.recommendations,
+        );
       }
 
       // Pass the session ID to the results view
@@ -478,7 +555,7 @@ class QuizController extends GetxController with WidgetsBindingObserver {
         'Error',
         'Failed to submit exam. Results are saved locally.',
       );
-      isLoading.value = false;
+      isInitializingSession.value = false;
     }
   }
 

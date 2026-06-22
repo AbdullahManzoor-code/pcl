@@ -62,7 +62,8 @@ void main() {
       const pathProviderChannel = MethodChannel(
         'plugins.flutter.io/path_provider',
       );
-      pathProviderChannel.setMockMethodCallHandler((MethodCall method) async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(pathProviderChannel, (MethodCall method) async {
         return Directory.systemTemp.path;
       });
       await GetStorage.init();
@@ -110,8 +111,9 @@ void main() {
         controller.answers[i] = 0; // select first option (A)
       }
 
-      controller.courseId = 'go_1_21';
-      controller.topicId = 'GO_OOP_01';
+      controller.languageId = 'go_1_21';
+      controller.mappingId = 'GO_OOP_01';
+      controller.majorTopicId = 'GO_OOP_01';
       controller.sessionId = 'session-123';
       controller.startTime = DateTime.now().subtract(
         const Duration(seconds: 300),

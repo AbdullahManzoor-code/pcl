@@ -9,6 +9,7 @@ import '../../../core/widgets/next_components.dart';
 import '../../../core/utils/responsive_view.dart';
 import '../../../core/utils/haptic_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../routes/app_pages.dart';
 
 class QuizView extends GetView<QuizController> {
@@ -29,17 +30,98 @@ class QuizView extends GetView<QuizController> {
         ),
         child: SafeArea(
           child: Obx(() {
-            if (controller.isLoading.value) {
-              return const Center(child: CircularProgressIndicator());
+            final showSkeleton = controller.questions.isEmpty && 
+                (controller.isSelectingQuestions.value || controller.isPollingQuestions.value || controller.isInitializingSession.value);
+
+            Widget mainContent;
+            
+            if (controller.questions.isEmpty && !showSkeleton) {
+              mainContent = Center(
+                child: Text(
+                  'Failed to load test questions.',
+                  style: GoogleFonts.inter(
+                    fontSize: 16.sp,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  ),
+                ),
+              );
+            } else {
+              mainContent = ResponsiveView(
+                mobile: _buildMobileLayout(context, isDark, isSkeleton: showSkeleton),
+                desktop: _buildDesktopLayout(context, isDark, isSkeleton: showSkeleton),
+              );
             }
 
-            if (controller.questions.isEmpty) {
-              return const Center(child: Text('No quiz available'));
-            }
-
-            return ResponsiveView(
-              mobile: _buildMobileLayout(context, isDark),
-              desktop: _buildDesktopLayout(context, isDark),
+            return Stack(
+              children: [
+                mainContent,
+                if (controller.isInitializingSession.value || (controller.questions.isEmpty && (controller.isSelectingQuestions.value || controller.isPollingQuestions.value)))
+                  Positioned.fill(
+                    child: Container(
+                      color: isDark ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.4),
+                      child: Center(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 32.h),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurface.withOpacity(0.95) : Colors.white.withOpacity(0.95),
+                            borderRadius: BorderRadius.circular(24.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withOpacity(0.3),
+                                blurRadius: 32.r,
+                                spreadRadius: 8.r,
+                                offset: Offset(0, 8.h),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: AppColors.primary.withOpacity(0.5),
+                              width: 2.w,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 64.w,
+                                    height: 64.w,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 4.w,
+                                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                      backgroundColor: AppColors.primary.withOpacity(0.2),
+                                    ),
+                                  ),
+                                  Icon(Icons.auto_awesome, color: AppColors.primary, size: 28.sp),
+                                ],
+                              ),
+                              SizedBox(height: 24.h),
+                              Text(
+                                controller.isInitializingSession.value 
+                                    ? 'Creating Test Session...' 
+                                    : 'Generating AI Questions...',
+                                style: GoogleFonts.inter(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              Text(
+                                'Personalizing your curriculum',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14.sp,
+                                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             );
           }),
         ),
@@ -47,7 +129,7 @@ class QuizView extends GetView<QuizController> {
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context, bool isDark) {
+  Widget _buildMobileLayout(BuildContext context, bool isDark, {bool isSkeleton = false}) {
     return Column(
       children: [
         _buildHeader(context, isDark),
@@ -55,14 +137,14 @@ class QuizView extends GetView<QuizController> {
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: _buildQuizContent(context, isDark),
+            child: isSkeleton ? _buildSkeletonContent(context, isDark) : _buildQuizContent(context, isDark),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDesktopLayout(BuildContext context, bool isDark) {
+  Widget _buildDesktopLayout(BuildContext context, bool isDark, {bool isSkeleton = false}) {
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 800.w),
@@ -73,7 +155,7 @@ class QuizView extends GetView<QuizController> {
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: _buildQuizContent(context, isDark),
+                child: isSkeleton ? _buildSkeletonContent(context, isDark) : _buildQuizContent(context, isDark),
               ),
             ),
           ],
@@ -82,9 +164,142 @@ class QuizView extends GetView<QuizController> {
     );
   }
 
+  Widget _buildSkeletonLayout(BuildContext context, bool isDark) {
+     return _buildMobileLayout(context, isDark, isSkeleton: true);
+  }
+
+  Widget _buildSkeletonContent(BuildContext context, bool isDark) {
+    final baseColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+    final highlightColor = isDark ? Colors.grey.shade700 : Colors.grey.shade100;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Progress Skeleton
+        Shimmer.fromColors(
+          baseColor: baseColor,
+          highlightColor: highlightColor,
+          child: Column(
+            children: [
+              Container(
+                height: 6.h,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(width: 100.w, height: 14.h, color: Colors.white),
+                  Container(width: 80.w, height: 14.h, color: Colors.white),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 24.h),
+        
+        // Question Card Skeleton
+        NextCard(
+          padding: const EdgeInsets.all(0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 60.h,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : AppColors.lightDivider,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(12.r),
+                    topRight: Radius.circular(12.r),
+                  ),
+                ),
+                padding: EdgeInsets.all(20.r),
+                child: Shimmer.fromColors(
+                  baseColor: baseColor,
+                  highlightColor: highlightColor,
+                  child: Container(width: 120.w, height: 20.h, color: Colors.white),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(24.r),
+                child: Shimmer.fromColors(
+                  baseColor: baseColor,
+                  highlightColor: highlightColor,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(width: double.infinity, height: 20.h, color: Colors.white),
+                      SizedBox(height: 8.h),
+                      Container(width: 200.w, height: 20.h, color: Colors.white),
+                      SizedBox(height: 32.h),
+                      ...List.generate(4, (index) => Padding(
+                        padding: EdgeInsets.only(bottom: 12.h),
+                        child: Container(
+                          height: 56.h,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                        ),
+                      )),
+                      SizedBox(height: 24.h),
+                      Row(
+                        children: [
+                           Expanded(child: Container(height: 48.h, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8.r)))),
+                           SizedBox(width: 16.w),
+                           Expanded(child: Container(height: 48.h, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8.r)))),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 32.h),
+      ],
+    );
+  }
+
   Widget _buildQuizContent(BuildContext context, bool isDark) {
     return Column(
       children: [
+        if (controller.isPollingQuestions.value)
+          Padding(
+            padding: EdgeInsets.only(bottom: 16.h),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.indigo600.withOpacity(0.2) : AppColors.info.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: AppColors.info.withOpacity(0.5)),
+              ),
+              child: Row(
+                children: [
+                   SizedBox(
+                     width: 16.w,
+                     height: 16.w,
+                     child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                   ),
+                   SizedBox(width: 12.w),
+                   Expanded(
+                     child: Text(
+                       'AI is preparing more questions...',
+                       style: GoogleFonts.inter(
+                         fontSize: 14.sp,
+                         fontWeight: FontWeight.w500,
+                         color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                       ),
+                     ),
+                   ),
+                ],
+              ),
+            ),
+          ),
         _buildProgress(context, isDark),
         SizedBox(height: 24.h),
         _buildQuestionCard(context, isDark),

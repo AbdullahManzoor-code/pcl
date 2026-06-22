@@ -82,9 +82,13 @@ class DashboardView extends GetView<DashboardController> {
                           //     bonuses: controller.synergyBonuses,
                           //   ),
                           // ),
-                          // Obx(
-                          //   () => LearningHeatmap(data: controller.heatmapData),
-                          // ),
+                          Obx(
+                            () => LearningHeatmap(
+                              data: controller.heatmapDays,
+                              selectedFilter: controller.heatmapFilter,
+                              isLoading: controller.isHeatmapLoading.value,
+                            ),
+                          ),
                           SizedBox(height: 24.h),
                           _buildQuickActions(context),
                           SizedBox(height: 32.h),

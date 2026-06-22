@@ -19,6 +19,8 @@ class AnalyticsController extends GetxController {
   final avgMastery = 0.0.obs;
   final totalSessions = 0.obs;
   final avgScore = 0.0.obs;
+  final activeTransferBoostsCount = 0.obs;
+  final recentSynergyBonusesCount = 0.obs;
   // Alias lists for view convenience
   final masteryList = <TopicMastery>[].obs;
   final sessionList = <RecentSession>[].obs;
@@ -45,13 +47,24 @@ class AnalyticsController extends GetxController {
     AppLogger.info('AnalyticsController.fetchAnalyticsData(): start');
     isLoading.value = true;
     try {
-      final summary = await _dashboardService.getDashboardSummary(
-        selectedLanguage.value,
-      );
+      final results = await Future.wait([
+        _dashboardService.getDashboardSummary(selectedLanguage.value),
+        _dashboardService.getActiveTransferBoosts(selectedLanguage.value),
+        _dashboardService.getRecentSynergyBonuses(selectedLanguage.value, days: 7),
+      ]);
+
+      final summary = results[0] as DashboardSummary;
+      final transferBoosts = results[1] as List<TransferBoost>;
+      final synergyBonuses = results[2] as List<SynergyBonus>;
+
       masteryData.assignAll(summary.masteryData);
       recentActivity.assignAll(summary.recentSessions);
       decayAlerts.assignAll(summary.decayAlerts);
       _processActivityData(summary.recentSessions);
+
+      // Store stats
+      activeTransferBoostsCount.value = transferBoosts.length;
+      recentSynergyBonusesCount.value = synergyBonuses.length;
 
       // Update additional observables
       conceptsPracticed.value = summary.masteryData.length;
@@ -103,7 +116,7 @@ class AnalyticsController extends GetxController {
     // Navigate to the practice page with pre-filled concept and optional subtopic.
     // Construct query parameters.
     final query = {
-      'concept': conceptId,
+      'conceptId': conceptId,
       if (subTopic != null && subTopic.isNotEmpty) 'subTopic': subTopic,
       // Force practice mode.
       'mode': 'practice',
@@ -114,6 +127,6 @@ class AnalyticsController extends GetxController {
     );
     // Use GetX navigation to push the route.
     // Assuming a named route '/practice' exists in the Flutter app.
-    Get.toNamed('/practice', parameters: query);
+    Get.toNamed('/practice', arguments: query);
   }
 }

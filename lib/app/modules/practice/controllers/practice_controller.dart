@@ -4,16 +4,23 @@ import 'package:pcl/app/data/models/course_api_models.dart';
 import 'package:pcl/app/data/services/course_service.dart';
 import '../../../routes/app_pages.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../data/services/exam_service.dart';
+import '../../../data/models/exam_api_models.dart';
+import '../../../data/services/auth_service.dart';
 
 class PracticeController extends GetxController {
   final CourseService _courseService = Get.find<CourseService>();
+  final ExamService _examService = Get.find<ExamService>();
+  final AuthService _authService = Get.find<AuthService>();
 
   final availableTopics = <CurriculumTopic>[].obs;
+  String? currentLanguageId;
   final isLoading = true.obs;
   final selectedTopic = Rxn<CurriculumTopic>();
   final difficulty = 0.5.obs;
   final selectedQuestionCount = 10.obs;
   final selectedMode = 'practice'.obs;
+  final isFromPracticeAgain = false.obs;
 
   final modes = [
     {
@@ -50,6 +57,7 @@ class PracticeController extends GetxController {
     try {
       final curriculumList = await _courseService.getCurriculum();
       if (curriculumList.isNotEmpty) {
+        currentLanguageId = curriculumList.first.languageId;
         availableTopics.assignAll(curriculumList.first.roadmap);
       }
       _handleArgs();
@@ -73,11 +81,12 @@ class PracticeController extends GetxController {
           'PracticeController._handleArgs(): received conceptId=$conceptId',
         );
         final topic = availableTopics.firstWhereOrNull(
-          (t) => t.majorTopicId == conceptId,
+          (t) => t.majorTopicId == conceptId || t.mappingId == conceptId,
         );
         if (topic != null) {
           selectedTopic.value = topic;
-          selectedMode.value = Get.arguments['mode'] ?? 'review';
+          selectedMode.value = Get.arguments['mode'] ?? 'practice';
+          isFromPracticeAgain.value = true;
         }
       }
     }
@@ -117,7 +126,7 @@ class PracticeController extends GetxController {
     return Colors.red;
   }
 
-  void startPractice() {
+  void startPractice() async {
     if (selectedTopic.value == null) {
       AppLogger.warning(
         'PracticeController.startPractice(): blocked, no topic selected',
@@ -129,19 +138,62 @@ class PracticeController extends GetxController {
       );
       return;
     }
-    final topic = selectedTopic.value!;
-    AppLogger.info(
-      'PracticeController.startPractice(): topic=${topic.name}, mode=${selectedMode.value}, difficulty=${difficulty.value}, questions=${selectedQuestionCount.value}',
-    );
-    Get.toNamed(
-      Routes.quiz,
-      arguments: {
-        'courseId': topic.mappingId,
-        'topicId': topic.majorTopicId,
-        'numQuestions': selectedQuestionCount.value,
-        'mode': selectedMode.value,
-        'difficulty': difficulty.value,
-      },
-    );
+    
+    isLoading.value = true;
+    try {
+      final topic = selectedTopic.value!;
+      AppLogger.info(
+        'PracticeController.startPractice(): topic=${topic.name}, mode=${selectedMode.value}, difficulty=${difficulty.value}, questions=${selectedQuestionCount.value}',
+      );
+
+      String? userId = _authService.getStoredUser()?.id;
+      if (userId == null) {
+        try {
+          final me = await _authService.getMe();
+          userId = me.id;
+        } catch (_) {}
+      }
+      if (userId == null) {
+        Get.snackbar('Error', 'Please login to start a session');
+        isLoading.value = false;
+        return;
+      }
+
+      if (currentLanguageId == null) {
+        Get.snackbar('Error', 'No language selected. Please restart practice.');
+        isLoading.value = false;
+        return;
+      }
+      
+      if (topic.mappingId.isEmpty || topic.majorTopicId.isEmpty) {
+        Get.snackbar('Error', 'Invalid curriculum mapping for this topic.');
+        isLoading.value = false;
+        return;
+      }
+
+      Get.toNamed(
+        Routes.quiz,
+        arguments: {
+          'sessionId': '', // Let QuizController handle session creation while rendering skeleton
+          'startTime': null,
+          'languageId': currentLanguageId!,
+          'mappingId': topic.mappingId,
+          'majorTopicId': topic.majorTopicId,
+          'numQuestions': selectedQuestionCount.value,
+          'mode': selectedMode.value,
+          'difficulty': difficulty.value,
+          'isDiagnostic': false,
+        },
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'PracticeController.startPractice(): failed',
+        e,
+        stackTrace,
+      );
+      Get.snackbar('Error', 'Failed to start session. Please try again.');
+    } finally {
+      isLoading.value = false;
+    }
   }
 }
