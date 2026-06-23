@@ -13,8 +13,7 @@ import '../modules/onboarding/bindings/onboarding_binding.dart';
 import '../modules/onboarding/views/onboarding_view.dart';
 import '../modules/language_selection/bindings/language_selection_binding.dart';
 import '../modules/language_selection/views/language_selection_view.dart';
-import '../modules/assessment/bindings/assessment_binding.dart';
-import '../modules/assessment/views/assessment_view.dart';
+
 import '../modules/results/bindings/results_binding.dart';
 import '../modules/results/views/results_view.dart';
 import '../modules/results/views/result_history_view.dart';
@@ -94,11 +93,7 @@ class AppPages {
       page: () => const ResultHistoryView(),
       // We are just injecting the controller directly in the view
     ),
-    GetPage(
-      name: _Paths.assessment,
-      page: () => const AssessmentView(),
-      binding: AssessmentBinding(),
-    ),
+
     GetPage(
       name: _Paths.dashboard,
       page: () => const DashboardView(),

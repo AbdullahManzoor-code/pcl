@@ -3,7 +3,6 @@ import '../../../core/utils/app_logger.dart';
 import '../../../data/models/dashboard_api_models.dart';
 import '../../../data/models/analytics_model.dart';
 import '../../../data/services/dashboard_service.dart';
-import 'package:intl/intl.dart';
 
 class AnalyticsController extends GetxController {
   late final DashboardService _dashboardService;
@@ -50,7 +49,10 @@ class AnalyticsController extends GetxController {
       final results = await Future.wait([
         _dashboardService.getDashboardSummary(selectedLanguage.value),
         _dashboardService.getActiveTransferBoosts(selectedLanguage.value),
-        _dashboardService.getRecentSynergyBonuses(selectedLanguage.value, days: 7),
+        _dashboardService.getRecentSynergyBonuses(
+          selectedLanguage.value,
+          days: 7,
+        ),
       ]);
 
       final summary = results[0] as DashboardSummary;
@@ -111,8 +113,8 @@ class AnalyticsController extends GetxController {
   // Public method used by view to trigger refresh
   void fetchAnalytics() => fetchAnalyticsData();
 
-  // Placeholder for practice again action
-  void practiceAgain(String conceptId, String? subTopic) {
+  // Trigger practice again action
+  void practiceAgain(String conceptId, String? subTopic, {double? difficulty, int? questionCount}) {
     // Navigate to the practice page with pre-filled concept and optional subtopic.
     // Construct query parameters.
     final query = {
@@ -120,6 +122,8 @@ class AnalyticsController extends GetxController {
       if (subTopic != null && subTopic.isNotEmpty) 'subTopic': subTopic,
       // Force practice mode.
       'mode': 'practice',
+      if (difficulty != null) 'difficulty': difficulty,
+      if (questionCount != null) 'questionCount': questionCount,
     };
     // Log navigation.
     AppLogger.info(

@@ -8,7 +8,7 @@ import '../../../core/widgets/enhanced_navigation.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../controllers/courses_controller.dart';
 import '../../../data/models/course_model.dart';
-import '../../../data/services/mock_api_service.dart';
+
 import '../../../routes/app_pages.dart';
 
 class CoursesView extends GetView<CoursesController> {

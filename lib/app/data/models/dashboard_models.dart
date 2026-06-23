@@ -1,5 +1,3 @@
-import 'package:pcl/app/data/models/course_api_models.dart';
-
 class DashboardSummaryResponse {
   final List<RecentSession> recentSessions;
 
@@ -7,8 +5,9 @@ class DashboardSummaryResponse {
 
   factory DashboardSummaryResponse.fromJson(Map<String, dynamic> json) {
     var sessionsList = json['recent_sessions'] as List;
-    List<RecentSession> sessions =
-        sessionsList.map((i) => RecentSession.fromJson(i)).toList();
+    List<RecentSession> sessions = sessionsList
+        .map((i) => RecentSession.fromJson(i))
+        .toList();
     return DashboardSummaryResponse(recentSessions: sessions);
   }
 }

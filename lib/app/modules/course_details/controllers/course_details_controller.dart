@@ -3,6 +3,8 @@ import '../../../core/utils/app_logger.dart';
 import '../../../data/models/course_model.dart';
 import '../../../data/models/topic_model.dart';
 import '../../../data/services/course_service.dart';
+import '../../courses/controllers/courses_controller.dart';
+import '../../my_courses/controllers/my_courses_controller.dart';
 import '../../../routes/app_pages.dart';
 
 class CourseDetailsController extends GetxController {
@@ -49,16 +51,61 @@ class CourseDetailsController extends GetxController {
       AppLogger.info(
         'CourseDetailsController.enroll(): courseId=${course.value!.id}',
       );
+
+      // Check if already enrolled before calling API
+      try {
+        final portfolio = await _courseService.getUserLanguages();
+        if (portfolio.languages.any((l) => l.languageId == course.value!.id)) {
+          course.value = course.value!.copyWith(isEnrolled: true);
+          Get.snackbar(
+            'Already Enrolled',
+            'You are already enrolled in ${course.value!.title}.',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Get.theme.primaryColor.withOpacity(0.1),
+            colorText: Get.theme.primaryColor,
+          );
+          // Sync state immediately across screens
+          try {
+            if (Get.isRegistered<CoursesController>()) {
+              Get.find<CoursesController>().fetchCourses();
+            }
+            if (Get.isRegistered<MyCoursesController>()) {
+              Get.find<MyCoursesController>().fetchEnrolledCourses();
+            }
+          } catch (e) {
+            AppLogger.warning('CourseDetailsController.enroll(): failed to refresh active controllers in pre-check', e);
+          }
+          // Reload topics/progress just in case
+          fetchTopics(course.value!.id);
+          return;
+        }
+      } catch (e) {
+        AppLogger.warning(
+          'CourseDetailsController.enroll(): failed to check existing enrollment',
+          e,
+        );
+      }
+
       await _courseService.enrollInLanguage(course.value!.id, 'beginner');
 
-      // Assume user is now enrolled and fetch data again to sync progress tracking
-      final portfolio = await _courseService.getUserLanguages();
-      final stats = portfolio.languages.firstWhereOrNull(
-        (l) => l.languageId == course.value!.id,
-      );
+      // Mark as enrolled immediately in details view
+      course.value = course.value!.copyWith(isEnrolled: true, progress: 0.0);
 
-      if (stats != null) {
-        course.value = course.value!.copyWith(isEnrolled: true, progress: 0.0);
+      // Sync state immediately across screens
+      try {
+        if (Get.isRegistered<CoursesController>()) {
+          Get.find<CoursesController>().fetchCourses();
+        }
+        if (Get.isRegistered<MyCoursesController>()) {
+          final myCoursesCtrl = Get.find<MyCoursesController>();
+          final courseId = course.value!.id;
+          if (!myCoursesCtrl.enrolledCourses.any((c) => c.id == courseId)) {
+            myCoursesCtrl.enrolledCourses.add(course.value!);
+          }
+          myCoursesCtrl.fetchEnrolledCourses();
+        }
+      } catch (e) {
+        AppLogger.warning('CourseDetailsController.enroll(): failed to refresh active controllers', e);
       }
 
       Get.snackbar(
@@ -192,11 +239,17 @@ class CourseDetailsController extends GetxController {
     AppLogger.info(
       'CourseDetailsController.startTest(): topicId=${topic.id}, numQuestions=$numQuestions',
     );
-    
+
     // We need to find the mappingId from the curriculum
     final curriculums = await _courseService.getCurriculum();
-    final roadmap = curriculums.firstWhereOrNull((c) => c.languageId == course.value?.id)?.roadmap ?? [];
-    final currTopic = roadmap.firstWhereOrNull((ct) => ct.majorTopicId == topic.id);
+    final roadmap =
+        curriculums
+            .firstWhereOrNull((c) => c.languageId == course.value?.id)
+            ?.roadmap ??
+        [];
+    final currTopic = roadmap.firstWhereOrNull(
+      (ct) => ct.majorTopicId == topic.id,
+    );
     final mappingId = currTopic?.mappingId ?? 'UNIV_VAR';
     final languageId = course.value?.id ?? 'python';
 
@@ -216,16 +269,28 @@ class CourseDetailsController extends GetxController {
     );
   }
 
-  void handleDemoTest() {
+  void handleDemoTest() async {
     AppLogger.info('CourseDetailsController.handleDemoTest(): tapped');
+    final langId = course.value?.id ?? 'python_3';
+
+    // Find the first topic from the curriculum roadmap to use dynamically
+    final curriculums = await _courseService.getCurriculum();
+    final roadmap =
+        curriculums.firstWhereOrNull((c) => c.languageId == langId)?.roadmap ??
+        [];
+
+    final firstTopic = roadmap.isNotEmpty ? roadmap.first : null;
+    final mappingId = firstTopic?.mappingId ?? 'UNIV_VAR';
+    final majorTopicId = firstTopic?.majorTopicId ?? '${langId}_intro';
+
     Get.toNamed(
       Routes.quiz,
       arguments: {
         'sessionId': '',
         'startTime': null,
-        'languageId': course.value?.id ?? 'python',
-        'mappingId': 'UNIV_VAR',
-        'majorTopicId': 'python_intro',
+        'languageId': langId,
+        'mappingId': mappingId,
+        'majorTopicId': majorTopicId,
         'numQuestions': 10,
         'mode': 'exam',
         'difficulty': 0.5,
@@ -234,7 +299,7 @@ class CourseDetailsController extends GetxController {
     );
   }
 
-  void openSubTopic(SubTopic subTopic) {
+  void openSubTopic(SubTopic subTopic) async {
     AppLogger.info(
       'CourseDetailsController.openSubTopic(): subTopicId=${subTopic.id}, type=${subTopic.type}',
     );
@@ -251,19 +316,37 @@ class CourseDetailsController extends GetxController {
     }
 
     if (subTopic.type == 'quiz') {
+      final parentTopic = topics.firstWhereOrNull(
+        (t) => t.subTopics.any((st) => st.id == subTopic.id),
+      );
+      final majorTopicId =
+          parentTopic?.id ?? selectedTopicId.value ?? 'python_intro';
+      final langId = course.value?.id ?? 'python_3';
+
+      final curriculums = await _courseService.getCurriculum();
+      final roadmap =
+          curriculums
+              .firstWhereOrNull((c) => c.languageId == langId)
+              ?.roadmap ??
+          [];
+      final currTopic = roadmap.firstWhereOrNull(
+        (ct) => ct.majorTopicId == majorTopicId,
+      );
+      final mappingId = currTopic?.mappingId ?? 'UNIV_VAR';
+
       Get.toNamed(
-        Routes.quiz, 
+        Routes.quiz,
         arguments: {
           'sessionId': '',
           'startTime': null,
-          'languageId': course.value?.id ?? 'python',
-          'mappingId': 'UNIV_VAR',
-          'majorTopicId': 'python_intro',
+          'languageId': langId,
+          'mappingId': mappingId,
+          'majorTopicId': majorTopicId,
           'numQuestions': 5,
           'mode': 'practice',
           'difficulty': 0.5,
           'isDiagnostic': false,
-        }
+        },
       );
     } else {
       AppLogger.debug(

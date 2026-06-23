@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -79,25 +80,31 @@ class LearningHeatmap extends StatelessWidget {
               ],
             ),
             SizedBox(height: 20.h),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                // Estimate number of columns (weeks)
-                final int columns = (days / 7).ceil() + 1;
-                final double margin = 2.r;
+            SizedBox(
+              height: 140.h,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Estimate number of columns (weeks)
+                  final int columns = (days / 7).ceil() + 1;
+                  final double margin = 2.r;
 
-                // Calculate square size to exactly fit the horizontal space
-                double calculatedSize =
-                    (constraints.maxWidth / columns) - (margin * 2);
+                  // Calculate size to fit horizontally and vertically
+                  double sizeByWidth = (constraints.maxWidth / columns) - (margin * 2);
+                  double sizeByHeight = (constraints.maxHeight / 7) - (margin * 2);
 
-                // Keep it a PERFECT SQUARE.
-                // Min size: 8.w (so year view is readable and scrolls).
-                // Max size: 24.w (so month view gets larger, but 7 rows won't make the widget too tall).
-                double squareSize = calculatedSize.clamp(8.w, 24.w);
+                  // Keep it a PERFECT SQUARE, constrained by both dimensions.
+                  // Min size: 12.w (so year view is readable and scrolls).
+                  double squareSize = math.max(math.min(sizeByWidth, sizeByHeight), 12.w);
 
-                return isLoading
-                    ? _buildSkeleton(isDark, days, squareSize, margin)
-                    : _buildHeatmapGrid(isDark, days, squareSize, margin);
-              },
+                  final grid = isLoading
+                      ? _buildSkeleton(isDark, days, squareSize, margin)
+                      : _buildHeatmapGrid(isDark, days, squareSize, margin);
+
+                  return Center(
+                    child: grid,
+                  );
+                },
+              ),
             ),
             SizedBox(height: 16.h),
             if (!isLoading) _buildStatsStrip(isDark, days),

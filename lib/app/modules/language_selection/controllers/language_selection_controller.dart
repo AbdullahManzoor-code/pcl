@@ -37,6 +37,17 @@ class LanguageSelectionController extends GetxController {
   void selectLevel(String level) {
     AppLogger.info('LanguageSelectionController.selectLevel(): level=$level');
     selectedLevel.value = level;
-    Get.offAllNamed(Routes.assessment);
+    Get.offAllNamed(
+      Routes.quiz,
+      arguments: {
+        'languageId': selectedLanguage.value.toLowerCase(),
+        'mappingId': 'UNIV_VAR', // Base concept
+        'majorTopicId': 'UNIV_VAR',
+        'numQuestions': 5,
+        'mode': 'diagnostic',
+        'difficulty': 0.5,
+        'isDiagnostic': true,
+      },
+    );
   }
 }

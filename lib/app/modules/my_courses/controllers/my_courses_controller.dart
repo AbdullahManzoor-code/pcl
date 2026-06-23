@@ -4,6 +4,8 @@ import '../../../core/utils/app_logger.dart';
 import '../../../data/models/course_model.dart';
 import '../../../data/services/course_service.dart';
 import '../../../data/services/course_api_adapter.dart';
+import '../../../data/services/network_error_handler.dart';
+import '../../courses/controllers/courses_controller.dart';
 
 class MyCoursesController extends GetxController {
   final _courseService = Get.find<CourseService>();
@@ -76,11 +78,36 @@ class MyCoursesController extends GetxController {
       final languageId = langItem['id']!;
       final difficulty = creationSelectedDifficulty.value.toLowerCase();
 
+      // Check if already enrolled
+      if (enrolledCourses.any((c) => c.id == languageId)) {
+        Get.snackbar(
+          'Already Enrolled',
+          'You are already enrolled in ${selectedLanguage.value}.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: const Color(0xFF3B82F6).withOpacity(0.1),
+          colorText: const Color(0xFF3B82F6),
+        );
+        isCreating.value = false;
+        return;
+      }
+
       // Call API
       await _courseService.enrollInLanguage(languageId, difficulty);
 
       // Refresh courses list from API
       fetchEnrolledCourses();
+
+      // Refresh CoursesController if registered to sync state immediately
+      try {
+        if (Get.isRegistered<CoursesController>()) {
+          Get.find<CoursesController>().fetchCourses();
+        }
+      } catch (e) {
+        AppLogger.warning(
+          'MyCoursesController.createLearningPath(): failed to refresh CoursesController',
+          e,
+        );
+      }
 
       AppLogger.info(
         'MyCoursesController.createLearningPath(): success language=${selectedLanguage.value}',
@@ -92,6 +119,20 @@ class MyCoursesController extends GetxController {
         backgroundColor: const Color(0xFF22C55E).withOpacity(0.1),
         colorText: const Color(0xFF22C55E),
         icon: const Icon(Icons.check_circle_outline, color: Color(0xFF22C55E)),
+      );
+    } on NetworkException catch (e, stackTrace) {
+      AppLogger.error(
+        'MyCoursesController.createLearningPath(): network failure',
+        e,
+        stackTrace,
+      );
+      Get.snackbar(
+        'Error',
+        e.getUserMessage(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444).withOpacity(0.1),
+        colorText: const Color(0xFFEF4444),
+        icon: const Icon(Icons.error_outline, color: Color(0xFFEF4444)),
       );
     } catch (e, stackTrace) {
       AppLogger.error(

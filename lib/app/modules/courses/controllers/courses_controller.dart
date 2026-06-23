@@ -1,7 +1,10 @@
 import 'package:get/get.dart';
+import 'package:pcl/app/modules/my_courses/controllers/my_courses_controller.dart';
 import '../../../data/models/course_model.dart';
+import '../../../data/models/course_api_models.dart';
 import '../../../data/services/course_service.dart';
 import '../../../data/services/course_api_adapter.dart';
+import '../../../data/services/network_error_handler.dart';
 import '../../../routes/app_pages.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/haptic_utils.dart';
@@ -55,10 +58,40 @@ class CoursesController extends GetxController {
       final languageId = langItem['id']!;
       final difficulty = creationSelectedDifficulty.value.toLowerCase();
 
+      // Check if already enrolled
+      try {
+        final portfolio = await _courseService.getUserLanguages();
+        if (portfolio.languages.any((l) => l.languageId == languageId)) {
+          Get.snackbar(
+            'Already Enrolled',
+            'You are already enrolled in ${selectedLanguage.value}.',
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: AppColors.primary.withOpacity(0.1),
+            colorText: AppColors.primary,
+          );
+          isCreating.value = false;
+          return;
+        }
+      } catch (_) {
+        // Ignore cache fetch error, let the API call fail if needed
+      }
+
       await _courseService.enrollInLanguage(languageId, difficulty);
 
       // Refresh courses list
       fetchCourses();
+
+      // Refresh MyCoursesController if registered to sync state immediately
+      try {
+        if (Get.isRegistered<MyCoursesController>()) {
+          Get.find<MyCoursesController>().fetchEnrolledCourses();
+        }
+      } catch (e) {
+        AppLogger.warning(
+          'CoursesController.createLearningPath(): failed to refresh MyCoursesController',
+          e,
+        );
+      }
 
       Get.snackbar(
         'Success',
@@ -70,6 +103,20 @@ class CoursesController extends GetxController {
       );
       AppLogger.info(
         'CoursesController.createLearningPath(): success language=${selectedLanguage.value}',
+      );
+    } on NetworkException catch (e, stackTrace) {
+      Get.snackbar(
+        'Error',
+        e.getUserMessage(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error.withOpacity(0.1),
+        colorText: AppColors.error,
+        icon: const Icon(Icons.error_outline, color: AppColors.error),
+      );
+      AppLogger.error(
+        'CoursesController.createLearningPath(): network failure',
+        e,
+        stackTrace,
       );
     } catch (e, stackTrace) {
       Get.snackbar(
@@ -140,9 +187,37 @@ class CoursesController extends GetxController {
     try {
       // For all available courses, fetch curriculum roadmap
       final curriculums = await _courseService.getCurriculum();
-      final allCourses = curriculums
-          .map((c) => CourseApiAdapter.mapCurriculumToCourse(c))
-          .toList();
+
+      // Fetch user portfolio if available to see which courses they are enrolled in
+      LanguagePortfolio? portfolio;
+      try {
+        portfolio = await _courseService.getUserLanguages();
+      } catch (e) {
+        AppLogger.warning(
+          'CoursesController.fetchCourses(): failed to load user portfolio',
+          e,
+        );
+      }
+
+      final allCourses = curriculums.map((c) {
+        final course = CourseApiAdapter.mapCurriculumToCourse(c);
+        if (portfolio != null) {
+          final stats = portfolio.languages.firstWhereOrNull(
+            (l) => l.languageId == course.id,
+          );
+          if (stats != null) {
+            final mapped = CourseApiAdapter.mapLanguageStatsToCourse(stats);
+            return mapped.copyWith(
+              level: course.level,
+              description: course.description,
+              rating: course.rating,
+              reviewCount: course.reviewCount,
+              totalTopics: course.totalTopics,
+            );
+          }
+        }
+        return course;
+      }).toList();
 
       courses.assignAll(allCourses);
 

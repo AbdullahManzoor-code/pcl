@@ -75,6 +75,9 @@ class CourseService extends GetxService {
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw _handleError(response);
       }
+      
+      // Clear cache so subsequent calls retrieve the fresh portfolio
+      _storage.remove('cache_user_languages');
     }, operationName: 'EnrollInLanguage');
   }
 

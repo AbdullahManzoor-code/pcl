@@ -8,6 +8,7 @@ import '../../my_courses/controllers/my_courses_controller.dart';
 import '../../practice/controllers/practice_controller.dart';
 import '../../analytics/controllers/analytics_controller.dart';
 import '../../../data/services/achievement_service.dart';
+import '../../../data/services/profile_service.dart';
 
 class MainBinding extends Bindings {
   @override
@@ -17,6 +18,7 @@ class MainBinding extends Bindings {
     Get.lazyPut<LearningController>(() => LearningController());
     Get.lazyPut<ProfileController>(() => ProfileController());
     Get.lazyPut<AchievementService>(() => AchievementService());
+    Get.lazyPut<ProfileService>(() => ProfileService());
     Get.lazyPut<CoursesController>(() => CoursesController());
     Get.lazyPut<MyCoursesController>(() => MyCoursesController());
     Get.lazyPut<PracticeController>(() => PracticeController());

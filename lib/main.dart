@@ -5,16 +5,14 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:pcl/app/data/services/mock_api_service.dart';
 import 'package:pcl/app/data/services/auth_service.dart';
-import 'package:pcl/app/data/services/api_adapter_service.dart';
+import 'package:pcl/app/data/services/local_profile_service.dart';
 import 'package:pcl/app/data/services/notification_service.dart';
 import 'package:pcl/app/data/services/theme_service.dart';
 import 'package:pcl/app/data/services/course_service.dart';
 import 'package:pcl/app/data/services/dashboard_service.dart';
 import 'package:pcl/app/data/services/exam_service.dart';
 import 'package:pcl/app/data/services/reports_service.dart';
-import 'package:pcl/app/data/repositories/course_repository.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'app/routes/app_pages.dart';
 import 'app/core/theme/app_theme.dart';
@@ -51,7 +49,7 @@ Future<void> main() async {
   AppLogger.info('main(): registering API and domain services');
   // Initialize ThemeService with stored value
   final themeService = Get.put<ThemeService>(ThemeService(), permanent: true);
-  Get.put<ApiAdapterService>(ApiAdapterService());
+  Get.put<LocalProfileService>(LocalProfileService());
   Get.put<AuthService>(AuthService());
   Get.put<CourseService>(CourseService());
   Get.put<DashboardService>(DashboardService());
@@ -61,11 +59,7 @@ Future<void> main() async {
   // Lazy register ReportsService
   Get.lazyPut<ReportsService>(() => ReportsService(), fenix: true);
 
-  // Initialize mock API and repositories
-  final apiService = await Get.putAsync<MockApiService>(
-    () async => MockApiService(),
-  );
-  Get.put<CourseRepository>(CourseRepositoryImpl(apiService));
+  // Initialize repositories
   Get.put(ValidationService());
 
   // Global error handling

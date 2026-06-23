@@ -11,8 +11,6 @@ import '../../../core/utils/haptic_utils.dart';
 import '../controllers/dashboard_controller.dart';
 import '../../../data/models/course_model.dart';
 import '../../../core/widgets/heatmap.dart';
-import '../widgets/synergy_bonus_card.dart';
-import '../widgets/transfer_boost_alert.dart';
 
 class DashboardView extends GetView<DashboardController> {
   const DashboardView({super.key});
@@ -236,74 +234,6 @@ class DashboardView extends GetView<DashboardController> {
           //   },
           // ),
         ],
-      ),
-    );
-  }
-
-  PreferredSize _buildBottom(BuildContext context) {
-    return PreferredSize(
-      preferredSize: Size.fromHeight(70.h),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 44.h,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: Colors.transparent),
-                ),
-                child: TextField(
-                  cursorColor: AppColors.primary,
-                  style: GoogleFonts.inter(
-                    color: AppColors.primary,
-                    fontSize: 14.sp,
-                  ),
-                  decoration: InputDecoration(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
-                    hintStyle: GoogleFonts.inter(
-                      color: Colors.grey[400],
-                      fontSize: 14.sp,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: AppColors.primary,
-                      size: 20.sp,
-                    ),
-                    hintText: 'Search courses, topics...',
-                    border: InputBorder.none,
-                  ),
-                  onTap: () {
-                    // showSearch(...);
-                  },
-                ),
-              ),
-            ),
-            SizedBox(width: 12.w),
-            GestureDetector(
-              onTap: () {
-                // navigatorService.push(const EnhancedFilterScreen());
-              },
-              child: Container(
-                width: 44.h,
-                height: 44.h,
-                decoration: BoxDecoration(
-                  color: Colors.white, // White button on primary bg
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.tune_rounded,
-                    color: AppColors.primary, // Primary icon on white
-                    size: 20.sp,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

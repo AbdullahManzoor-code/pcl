@@ -14,13 +14,12 @@ class PracticeController extends GetxController {
   final AuthService _authService = Get.find<AuthService>();
 
   final availableTopics = <CurriculumTopic>[].obs;
-  String? currentLanguageId;
+  final currentLanguageId = ''.obs;
   final isLoading = true.obs;
   final selectedTopic = Rxn<CurriculumTopic>();
   final difficulty = 0.5.obs;
   final selectedQuestionCount = 10.obs;
   final selectedMode = 'practice'.obs;
-  final isFromPracticeAgain = false.obs;
 
   final modes = [
     {
@@ -57,7 +56,7 @@ class PracticeController extends GetxController {
     try {
       final curriculumList = await _courseService.getCurriculum();
       if (curriculumList.isNotEmpty) {
-        currentLanguageId = curriculumList.first.languageId;
+        currentLanguageId.value = curriculumList.first.languageId;
         availableTopics.assignAll(curriculumList.first.roadmap);
       }
       _handleArgs();
@@ -76,17 +75,45 @@ class PracticeController extends GetxController {
   void _handleArgs() {
     if (Get.arguments != null && Get.arguments is Map) {
       final String? conceptId = Get.arguments['conceptId'];
-      if (conceptId != null) {
+      final String? subTopic = Get.arguments['subTopic'];
+      
+      if (conceptId != null || subTopic != null) {
         AppLogger.info(
-          'PracticeController._handleArgs(): received conceptId=$conceptId',
+          'PracticeController._handleArgs(): received conceptId=$conceptId, subTopic=$subTopic',
         );
+        
+        // Note: from backend RecentSession, concept_id is mapping_id and sub_topic is major_topic_id
         final topic = availableTopics.firstWhereOrNull(
-          (t) => t.majorTopicId == conceptId || t.mappingId == conceptId,
+          (t) => t.majorTopicId == subTopic || t.majorTopicId == conceptId || t.mappingId == conceptId,
         );
+        
         if (topic != null) {
           selectedTopic.value = topic;
-          selectedMode.value = Get.arguments['mode'] ?? 'practice';
-          isFromPracticeAgain.value = true;
+        } else {
+          AppLogger.warning('PracticeController._handleArgs(): topic not found in curriculum');
+        }
+      }
+      
+      final String? mode = Get.arguments['mode'];
+      if (mode != null) {
+        selectedMode.value = mode;
+      }
+      
+      final dynamic diff = Get.arguments['difficulty'];
+      if (diff != null) {
+        if (diff is num) {
+          difficulty.value = diff.toDouble();
+        } else if (diff is String) {
+          difficulty.value = double.tryParse(diff) ?? 0.5;
+        }
+      }
+      
+      final dynamic count = Get.arguments['questionCount'];
+      if (count != null) {
+        if (count is int) {
+          selectedQuestionCount.value = count;
+        } else if (count is String) {
+          selectedQuestionCount.value = int.tryParse(count) ?? 10;
         }
       }
     }
@@ -138,7 +165,7 @@ class PracticeController extends GetxController {
       );
       return;
     }
-    
+
     isLoading.value = true;
     try {
       final topic = selectedTopic.value!;
@@ -159,30 +186,27 @@ class PracticeController extends GetxController {
         return;
       }
 
-      if (currentLanguageId == null) {
-        Get.snackbar('Error', 'No language selected. Please restart practice.');
-        isLoading.value = false;
-        return;
-      }
-      
-      if (topic.mappingId.isEmpty || topic.majorTopicId.isEmpty) {
-        Get.snackbar('Error', 'Invalid curriculum mapping for this topic.');
-        isLoading.value = false;
-        return;
-      }
+      final startReq = ExamStartRequest(
+        userId: userId,
+        languageId: currentLanguageId.value,
+        majorTopicId: topic.majorTopicId,
+        sessionType: selectedMode.value == 'review'
+            ? 'review'
+            : (selectedMode.value == 'exam' ? 'exam' : 'practice'),
+      );
+      final startRes = await _examService.startExamSession(startReq);
 
       Get.toNamed(
         Routes.quiz,
         arguments: {
-          'sessionId': '', // Let QuizController handle session creation while rendering skeleton
-          'startTime': null,
-          'languageId': currentLanguageId!,
+          'sessionId': startRes.sessionId,
+          'startTime': startRes.startedAt,
+          'languageId': currentLanguageId.value,
           'mappingId': topic.mappingId,
           'majorTopicId': topic.majorTopicId,
           'numQuestions': selectedQuestionCount.value,
           'mode': selectedMode.value,
           'difficulty': difficulty.value,
-          'isDiagnostic': false,
         },
       );
     } catch (e, stackTrace) {

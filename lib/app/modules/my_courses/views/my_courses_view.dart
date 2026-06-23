@@ -62,19 +62,19 @@ class MyCoursesView extends GetView<MyCoursesController> {
           ],
         );
       }),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreatePathSheet(context),
-        backgroundColor: AppColors.primary,
-        elevation: 4,
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: Text(
-          'Create Learning',
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
+      // floatingActionButton: FloatingActionButton.extended(
+      //   onPressed: () => _showCreatePathSheet(context),
+      //   backgroundColor: AppColors.primary,
+      //   elevation: 4,
+      //   icon: const Icon(Icons.add_rounded, color: Colors.white),
+      //   label: Text(
+      //     'Create Learning',
+      //     style: GoogleFonts.inter(
+      //       fontWeight: FontWeight.bold,
+      //       color: Colors.white,
+      //     ),
+      //   ),
+      // ),
     );
   }
 
@@ -372,88 +372,11 @@ class MyCoursesView extends GetView<MyCoursesController> {
 
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
-        if (index == courses.length) {
-          return _buildCreateNewPathCard(context);
-        }
+        // if (index == courses.length) {
+        //   return _buildCreateNewPathCard(context);
+        // }
         return _buildCourseCard(context, courses[index]);
-      }, childCount: courses.length + 1),
-    );
-  }
-
-  Widget _buildCreateNewPathCard(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return GestureDetector(
-      onTap: () => _showCreatePathSheet(context),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(
-            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-            width: 2.w,
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              height: 64,
-              width: 64,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF22C55E)],
-                ),
-                borderRadius: BorderRadius.circular(999.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF3B82F6).withOpacity(0.1),
-                    blurRadius: 10.r,
-                    offset: Offset(0, 5.h),
-                  ),
-                ],
-              ),
-              child: Icon(Icons.add, color: Colors.white, size: 32.sp),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              'Create New Path',
-              style: GoogleFonts.inter(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              'Start learning a new programming language',
-              style: GoogleFonts.inter(
-                fontSize: 14.sp,
-                color: isDark
-                    ? const Color(0xFF94A3B8)
-                    : const Color(0xFF64748B),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF3B82F6)),
-                borderRadius: BorderRadius.circular(6.r),
-              ),
-              child: Text(
-                'Add Learning Path',
-                style: GoogleFonts.inter(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF3B82F6),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      }, childCount: courses.length),
     );
   }
 
@@ -480,174 +403,5 @@ class MyCoursesView extends GetView<MyCoursesController> {
         ],
       ),
     );
-  }
-
-  void _showCreatePathSheet(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    HapticUtils.mediumImpact();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(32.r),
-            topRight: Radius.circular(32.r),
-          ),
-        ),
-        padding: EdgeInsets.all(24.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2.r),
-                ),
-              ),
-            ),
-            SizedBox(height: 24.h),
-            Text(
-              'Create Learning Path',
-              style: GoogleFonts.inter(
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              'Choose a language to start your journey',
-              style: GoogleFonts.inter(
-                fontSize: 14.sp,
-                color: isDark
-                    ? const Color(0xFF94A3B8)
-                    : const Color(0xFF64748B),
-              ),
-            ),
-            SizedBox(height: 32.h),
-            Expanded(
-              child: GridView.builder(
-                physics: const BouncingScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16.w,
-                  mainAxisSpacing: 16.h,
-                  childAspectRatio: 1.5,
-                ),
-                itemCount: controller.languages.length,
-                itemBuilder: (context, index) {
-                  final lang = controller.languages[index];
-                  return _buildLanguageOption(context, lang);
-                },
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Obx(
-              () => SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: controller.isCreating.value
-                      ? null
-                      : () {
-                          Get.back();
-                          controller.createLearningPath();
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                  child: controller.isCreating.value
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Text(
-                          'Generate Path',
-                          style: GoogleFonts.inter(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLanguageOption(BuildContext context, Map<String, String> lang) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = _getLanguageColor(lang['name']!);
-
-    return Obx(() {
-      final isSelected = controller.selectedLanguage.value == lang['name'];
-      return GestureDetector(
-        onTap: () {
-          HapticUtils.selectionClick();
-          controller.selectedLanguage.value = lang['name']!;
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(
-              color: isSelected
-                  ? color
-                  : (isDark
-                        ? const Color(0xFF334155)
-                        : const Color(0xFFE2E8F0)),
-              width: isSelected ? 2 : 1.5,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(lang['icon']!, style: TextStyle(fontSize: 24.sp)),
-              SizedBox(height: 8.h),
-              Text(
-                lang['name']!,
-                style: GoogleFonts.inter(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected
-                      ? color
-                      : (isDark ? Colors.white : const Color(0xFF1E293B)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    });
-  }
-
-  Color _getLanguageColor(String title) {
-    if (title.toLowerCase().contains('python')) return const Color(0xFF3B82F6);
-    if (title.toLowerCase().contains('javascript'))
-      return const Color(0xFFF59E0B);
-    if (title.toLowerCase().contains('java')) return const Color(0xFFEF4444);
-    if (title.toLowerCase().contains('c++')) return const Color(0xFFA855F7);
-    if (title.toLowerCase().contains('go')) return const Color(0xFF06B6D4);
-    if (title.toLowerCase().contains('typescript'))
-      return const Color(0xFF60A5FA);
-    return const Color(0xFF2563EB);
   }
 }

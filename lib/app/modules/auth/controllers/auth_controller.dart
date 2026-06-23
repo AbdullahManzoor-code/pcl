@@ -251,6 +251,8 @@ class AuthController extends GetxController {
       storage.write('userLanguage', user.lastActiveLanguage);
       storage.write('userExperienceLevel', selectedExperienceLevel.value);
 
+      // Save display name locally (not in backend API)
+
       AppLogger.info('AuthController.register(): success userId=${user.id}');
       Get.snackbar(
         'Success',
@@ -259,7 +261,18 @@ class AuthController extends GetxController {
         backgroundColor: Colors.green.withOpacity(0.1),
       );
 
-      Get.offAllNamed(Routes.assessment);
+      Get.offAllNamed(
+        Routes.quiz,
+        arguments: {
+          'languageId': selectedLanguage.value ?? 'python_3',
+          'mappingId': 'UNIV_VAR', // Base concept
+          'majorTopicId': 'UNIV_VAR',
+          'numQuestions': 5,
+          'mode': 'diagnostic',
+          'difficulty': 0.5,
+          'isDiagnostic': true,
+        },
+      );
     } on NetworkException catch (e, stackTrace) {
       AppLogger.error(
         'AuthController.register(): network failure',
@@ -342,7 +355,7 @@ class AuthController extends GetxController {
     AppLogger.info('AuthController.sendVerificationEmail(): submitted');
     isLoading.value = true;
     try {
-      await Future.delayed(const Duration(seconds: 1)); // Mock delay
+      // TODO: Implement email verification with backend API
       AppLogger.info(
         'AuthController.sendVerificationEmail(): navigating to verification sent screen',
       );
@@ -363,7 +376,7 @@ class AuthController extends GetxController {
     AppLogger.info('AuthController.checkVerificationStatus(): submitted');
     isLoading.value = true;
     try {
-      await Future.delayed(const Duration(seconds: 1)); // Mock delay
+      // TODO: Implement verification status check with backend API
       AppLogger.info(
         'AuthController.checkVerificationStatus(): verified, routing to onboarding',
       );

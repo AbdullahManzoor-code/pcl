@@ -84,7 +84,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: NextButton(
-            text: course.isEnrolled ? 'Continue Learning' : 'Enroll Now',
+            text: course.isEnrolled ? 'Enrolled' : 'Enroll Now',
             onPressed: () {
               HapticUtils.heavyImpact();
               if (course.isEnrolled) {
@@ -94,7 +94,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
               }
             },
             icon: course.isEnrolled
-                ? Icons.play_arrow_rounded
+                ? Icons.check_rounded
                 : Icons.add_rounded,
             isFullWidth: true,
           ),

@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:pcl/app/core/theme/app_theme.dart';
 import 'package:pcl/app/data/models/user_model.dart';
-import 'package:pcl/app/data/services/mock_api_service.dart';
+
 import '../../../core/utils/app_logger.dart';
 import '../../../data/models/course_model.dart';
 import '../../../data/models/analytics_model.dart';
@@ -17,7 +17,6 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../data/services/exam_service.dart';
 import '../../../data/models/dashboard_api_models.dart';
-import '../../../data/models/dashboard_models.dart' hide RecentSession;
 import 'package:intl/intl.dart';
 
 class DashboardController extends GetxController {
@@ -232,7 +231,9 @@ class DashboardController extends GetxController {
   }
 
   Future<void> _fetchHeatmapData(String langId) async {
-    AppLogger.info('DashboardController._fetchHeatmapData(): fetching 365-day history');
+    AppLogger.info(
+      'DashboardController._fetchHeatmapData(): fetching 365-day history',
+    );
     isHeatmapLoading.value = true;
     try {
       final examService = Get.find<ExamService>();
@@ -288,8 +289,14 @@ class DashboardController extends GetxController {
 
       // We need to find the mappingId from the curriculum
       final curriculums = await _courseService.getCurriculum();
-      final roadmap = curriculums.firstWhereOrNull((c) => c.languageId == activeLangId.value)?.roadmap ?? [];
-      final currTopic = roadmap.firstWhereOrNull((ct) => ct.majorTopicId == rec.conceptId);
+      final roadmap =
+          curriculums
+              .firstWhereOrNull((c) => c.languageId == activeLangId.value)
+              ?.roadmap ??
+          [];
+      final currTopic = roadmap.firstWhereOrNull(
+        (ct) => ct.majorTopicId == rec.conceptId,
+      );
       final mappingId = currTopic?.mappingId ?? 'UNIV_VAR';
 
       // Navigate to quiz directly

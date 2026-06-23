@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 class LanguageStats {
   final String languageId;
   final String languageName;
@@ -70,7 +68,8 @@ class LanguagePortfolio {
   factory LanguagePortfolio.fromJson(Map<String, dynamic> json) {
     return LanguagePortfolio(
       primaryLanguage: json['primary_language'],
-      languages: (json['languages'] as List?)
+      languages:
+          (json['languages'] as List?)
               ?.map((e) => LanguageStats.fromJson(e))
               .toList() ??
           [],
@@ -123,7 +122,8 @@ class LanguageCurriculum {
     return LanguageCurriculum(
       languageId: json['language_id'] ?? '',
       name: json['name'] ?? '',
-      roadmap: (json['roadmap'] as List?)
+      roadmap:
+          (json['roadmap'] as List?)
               ?.map((e) => CurriculumTopic.fromJson(e))
               .toList() ??
           [],
@@ -227,7 +227,8 @@ class StudentProgressResponse {
     return StudentProgressResponse(
       languageId: json['language_id'] ?? '',
       languageName: json['language_name'] ?? '',
-      topics: (json['topics'] as List?)
+      topics:
+          (json['topics'] as List?)
               ?.map((e) => TopicProgress.fromJson(e))
               .toList() ??
           [],

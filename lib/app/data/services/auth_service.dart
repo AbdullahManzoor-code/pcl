@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'dart:async';
 import '../models/user_model.dart';
 import 'api_config.dart';
-import 'api_adapter_service.dart';
+import 'local_profile_service.dart';
 import 'network_error_handler.dart';
 import '../../core/utils/app_logger.dart';
 
@@ -19,7 +19,7 @@ class AuthService extends GetxService {
   static const String tokenExpirationStorageKey = 'auth_token_expiration';
   static const String refreshTokenStorageKey = 'auth_refresh_token';
 
-  final _adapter = Get.find<ApiAdapterService>();
+  final _localProfile = Get.find<LocalProfileService>();
   final _storage = GetStorage();
   String? _accessToken;
   String? _refreshToken;
@@ -54,11 +54,6 @@ class AuthService extends GetxService {
 
   /// Returns the last stored authenticated user, if available.
   User? getStoredUser() {
-    final mergedUser = _adapter.getMergedUser();
-    if (mergedUser != null) {
-      return mergedUser;
-    }
-
     final storedUserId = _storage.read('userId') as String?;
     final storedEmail = _storage.read('userEmail') as String?;
     final storedName = _storage.read('userName') as String?;
@@ -69,7 +64,7 @@ class AuthService extends GetxService {
       return null;
     }
 
-    return User(
+    final user = User(
       id: storedUserId,
       email: storedEmail,
       name: storedName,
@@ -77,6 +72,8 @@ class AuthService extends GetxService {
       altEmail: storedAltEmail,
       profilePicUrl: storedProfilePicUrl,
     );
+
+    return _localProfile.mergeWithRealUser(user);
   }
 
   /// Parse JWT token to extract expiration and other claims
@@ -116,26 +113,29 @@ class AuthService extends GetxService {
 
   /// Set token and calculate expiration time, also persist to storage
   void _setToken(String token) {
-  _accessToken = token;
+    _accessToken = token;
 
-  // Persist token to GetStorage
-  _storage.write(tokenStorageKey, token);
+    // Persist token to GetStorage
+    _storage.write(tokenStorageKey, token);
 
-  // Parse JWT to get expiration
-  final payload = _parseJWT(token);
-  if (payload != null && payload.containsKey('exp')) {
-    final expSeconds = payload['exp'] as int;
-    _tokenExpiresAt = DateTime.fromMillisecondsSinceEpoch(expSeconds * 1000);
-  } else {
-    // No expiration info; assume token valid for 5 minutes
-    _tokenExpiresAt = DateTime.now().add(const Duration(minutes: 5));
-    AppLogger.warning(
-      'AuthService._setToken(): no exp claim found, defaulting expiration to 5 minutes',
+    // Parse JWT to get expiration
+    final payload = _parseJWT(token);
+    if (payload != null && payload.containsKey('exp')) {
+      final expSeconds = payload['exp'] as int;
+      _tokenExpiresAt = DateTime.fromMillisecondsSinceEpoch(expSeconds * 1000);
+    } else {
+      // No expiration info; assume token valid for 5 minutes
+      _tokenExpiresAt = DateTime.now().add(const Duration(minutes: 5));
+      AppLogger.warning(
+        'AuthService._setToken(): no exp claim found, defaulting expiration to 5 minutes',
+      );
+    }
+    // Persist expiration time to storage
+    _storage.write(
+      tokenExpirationStorageKey,
+      _tokenExpiresAt?.toIso8601String(),
     );
   }
-  // Persist expiration time to storage
-  _storage.write(tokenExpirationStorageKey, _tokenExpiresAt?.toIso8601String());
-}
 
   /// Check if token is truly expired (past expiration, not just within buffer)
   bool _isTokenTrulyExpired() {
@@ -239,14 +239,17 @@ class AuthService extends GetxService {
         );
 
         // Convert API response and merge with mock data
-        final user = _adapter.convertLoginResponse(data);
+        final realUser = User.fromLoginResponse(data);
+        final user = _localProfile.mergeWithRealUser(realUser);
         // Persist user info to storage
         _storage.write('userId', user.id);
         _storage.write('userEmail', user.email);
         if (user.name != null) _storage.write('userName', user.name);
         if (user.phone != null) _storage.write('userPhone', user.phone);
-        if (user.altEmail != null) _storage.write('userAltEmail', user.altEmail);
-        if (user.profilePicUrl != null) _storage.write('profilePicUrl', user.profilePicUrl);
+        if (user.altEmail != null)
+          _storage.write('userAltEmail', user.altEmail);
+        if (user.profilePicUrl != null)
+          _storage.write('profilePicUrl', user.profilePicUrl);
         AppLogger.info(
           'AuthService._performLogin(): parsed user id=${user.id}, email=${user.email}',
         );
@@ -364,15 +367,18 @@ class AuthService extends GetxService {
         );
 
         // Convert API response and merge with mock data
-        final user = User.fromJson(data);
-        _adapter.saveMockUserData(user);
+        final realUser = User.fromJson(data);
+        final user = _localProfile.mergeWithRealUser(realUser);
+        
         // Persist user info to storage
         _storage.write('userId', user.id);
         _storage.write('userEmail', user.email);
         if (user.name != null) _storage.write('userName', user.name);
         if (user.phone != null) _storage.write('userPhone', user.phone);
-        if (user.altEmail != null) _storage.write('userAltEmail', user.altEmail);
-        if (user.profilePicUrl != null) _storage.write('profilePicUrl', user.profilePicUrl);
+        if (user.altEmail != null)
+          _storage.write('userAltEmail', user.altEmail);
+        if (user.profilePicUrl != null)
+          _storage.write('profilePicUrl', user.profilePicUrl);
         AppLogger.info(
           'AuthService._performRegister(): parsed user id=${user.id}, email=${user.email}',
         );
@@ -494,14 +500,17 @@ class AuthService extends GetxService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final user = User.fromJson(data);
+        final realUser = User.fromJson(data);
+        final user = _localProfile.mergeWithRealUser(realUser);
         // Persist user info
         _storage.write('userId', user.id);
         _storage.write('userEmail', user.email);
         if (user.name != null) _storage.write('userName', user.name);
         if (user.phone != null) _storage.write('userPhone', user.phone);
-        if (user.altEmail != null) _storage.write('userAltEmail', user.altEmail);
-        if (user.profilePicUrl != null) _storage.write('profilePicUrl', user.profilePicUrl);
+        if (user.altEmail != null)
+          _storage.write('userAltEmail', user.altEmail);
+        if (user.profilePicUrl != null)
+          _storage.write('profilePicUrl', user.profilePicUrl);
         AppLogger.info(
           'AuthService._performGetMe(): success, userId=${user.id}',
         );
@@ -694,13 +703,16 @@ class AuthService extends GetxService {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        final user = User.fromJson(responseData);
+        final realUser = User.fromJson(responseData);
+        final user = _localProfile.mergeWithRealUser(realUser);
         // Update local storage
         _storage.write('userName', user.name);
         _storage.write('userEmail', user.email);
         _storage.write('userPhone', user.phone);
-        if (user.altEmail != null) _storage.write('userAltEmail', user.altEmail);
-        if (user.profilePicUrl != null) _storage.write('profilePicUrl', user.profilePicUrl);
+        if (user.altEmail != null)
+          _storage.write('userAltEmail', user.altEmail);
+        if (user.profilePicUrl != null)
+          _storage.write('profilePicUrl', user.profilePicUrl);
         AppLogger.info('AuthService.updateProfile(): success');
         return user;
       } else {

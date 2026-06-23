@@ -8,7 +8,6 @@ abstract class Routes {
   static const auth = _Paths.auth;
   static const onboarding = _Paths.onboarding;
   static const languageSelection = _Paths.languageSelection;
-  static const assessment = _Paths.assessment;
   static const dashboard = _Paths.dashboard;
   static const learning = _Paths.learning;
   static const results = _Paths.results;
@@ -42,7 +41,6 @@ abstract class _Paths {
   static const auth = '/login';
   static const onboarding = '/onboarding';
   static const languageSelection = '/language-selection';
-  static const assessment = '/assessment';
   static const dashboard = '/dashboard';
   static const learning = '/learning';
   static const results = '/results';

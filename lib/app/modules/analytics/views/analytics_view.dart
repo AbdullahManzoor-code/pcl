@@ -8,7 +8,6 @@ import '../../../core/widgets/next_components.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../../../data/models/dashboard_api_models.dart';
 import 'package:intl/intl.dart';
-import '../widgets/decay_alerts_widget.dart';
 
 class AnalyticsView extends GetView<AnalyticsController> {
   const AnalyticsView({super.key});
@@ -431,6 +430,8 @@ class AnalyticsView extends GetView<AnalyticsController> {
                           controller.practiceAgain(
                             session.conceptId,
                             session.subTopic,
+                            difficulty: session.difficulty,
+                            questionCount: session.questionsAnswered,
                           );
                         },
                         icon: const Icon(Icons.refresh_rounded, size: 16),
