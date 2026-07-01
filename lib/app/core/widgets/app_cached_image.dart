@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// Cached network image wrapper with loading and error states
 class AppCachedImage extends StatelessWidget {
@@ -25,9 +26,26 @@ class AppCachedImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: borderRadius ?? BorderRadius.zero,
-      child: CachedNetworkImage(
+    Widget imageWidget;
+
+    if (imageUrl.trim().startsWith('<svg')) {
+      imageWidget = SvgPicture.string(
+        imageUrl,
+        width: width,
+        height: height,
+        fit: fit,
+        placeholderBuilder: (context) => placeholder ?? _buildPlaceholder(),
+      );
+    } else if (imageUrl.trim().toLowerCase().endsWith('.svg')) {
+      imageWidget = SvgPicture.network(
+        imageUrl,
+        width: width,
+        height: height,
+        fit: fit,
+        placeholderBuilder: (context) => placeholder ?? _buildPlaceholder(),
+      );
+    } else {
+      imageWidget = CachedNetworkImage(
         imageUrl: imageUrl,
         width: width,
         height: height,
@@ -36,7 +54,12 @@ class AppCachedImage extends StatelessWidget {
         errorWidget: (context, url, error) => errorWidget ?? _buildError(),
         fadeInDuration: const Duration(milliseconds: 300),
         fadeOutDuration: const Duration(milliseconds: 100),
-      ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: borderRadius ?? BorderRadius.zero,
+      child: imageWidget,
     );
   }
 

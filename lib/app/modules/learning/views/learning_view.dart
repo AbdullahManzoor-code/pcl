@@ -5,6 +5,9 @@ import '../../../core/widgets/app_code_editor.dart';
 import '../../../core/utils/haptic_utils.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/widgets/shimmer_widgets.dart';
+import '../../../core/widgets/app_cached_image.dart';
+import '../../../core/utils/course_svg_assets.dart';
 
 class LearningView extends GetView<LearningController> {
   const LearningView({super.key});
@@ -17,10 +20,16 @@ class LearningView extends GetView<LearningController> {
       ),
       body: SafeArea(
         child: Obx(() {
+          if (controller.isLoading.value) {
+            return const LearningShimmer();
+          }
           if (controller.isQuizMode.value) {
             return _buildQuizView(context);
           } else {
-            return _buildContentView(context);
+            return RefreshIndicator(
+              onRefresh: controller.refresh,
+              child: _buildContentView(context),
+            );
           }
         }),
       ),
@@ -38,22 +47,13 @@ class LearningView extends GetView<LearningController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Topic Banner (Mock Image)
-                  Container(
-                    height: 200.h,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade100,
-                      borderRadius: BorderRadius.circular(16.r),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.image,
-                        size: 80.sp,
-                        color: Colors.blue.shade300,
-                      ),
-                    ),
-                  ),
+                   AppCachedImage(
+                     imageUrl: CourseSvgAssets.getSvgForLanguage(controller.topic['language'] ?? ''),
+                     height: 200.h,
+                     width: double.infinity,
+                     borderRadius: BorderRadius.circular(16.r),
+                     fit: BoxFit.contain,
+                   ),
                   const SizedBox(height: 24),
 
                   // Content Text (Simplified rendering)

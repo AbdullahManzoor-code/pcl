@@ -7,6 +7,8 @@ import '../../../core/widgets/next_components.dart';
 import '../../../core/widgets/animated_widgets.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/datetime_utils.dart';
+import '../../../core/widgets/shimmer_widgets.dart';
 
 class CourseDetailsView extends GetView<CourseDetailsController> {
   const CourseDetailsView({super.key});
@@ -24,7 +26,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
         ),
         child: Obx(() {
           if (controller.isLoading.value) {
-            return const Center(child: CircularProgressIndicator());
+            return const CourseDetailsShimmer();
           }
 
           final course = controller.course.value;
@@ -44,8 +46,8 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
                     children: [
                       _buildDemoTestCard(context, course, isDark),
                       SizedBox(height: 32.h),
-                      _buildCourseGuide(context, course, isDark),
-                      SizedBox(height: 32.h),
+                      // _buildCourseGuide(context, course, isDark),
+                      // SizedBox(height: 32.h),
                       _buildStatsGrid(context, course, crossAxisCount: 2),
                       SizedBox(height: 40.h),
                       Row(
@@ -93,9 +95,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
                 controller.enroll();
               }
             },
-            icon: course.isEnrolled
-                ? Icons.check_rounded
-                : Icons.add_rounded,
+            icon: course.isEnrolled ? Icons.check_rounded : Icons.add_rounded,
             isFullWidth: true,
           ),
         );
@@ -146,7 +146,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
             course.description,
             style: GoogleFonts.inter(
               fontSize: 15.sp,
-              color: isDark ? Colors.white70 : Colors.black87,
+              color: isDark ? Colors.white : Colors.black87,
               height: 1.6,
             ),
           ),
@@ -158,14 +158,17 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
               _buildGuideFeature(
                 Icons.check_circle_outline_rounded,
                 'Structured for ${course.level}',
+                isDark,
               ),
               _buildGuideFeature(
                 Icons.bolt_rounded,
                 '${course.intensity} Pace',
+                isDark,
               ),
               _buildGuideFeature(
                 Icons.psychology_outlined,
                 'AI Evaluation Ready',
+                isDark,
               ),
             ],
           ),
@@ -174,11 +177,11 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
     );
   }
 
-  Widget _buildGuideFeature(IconData icon, String label) {
+  Widget _buildGuideFeature(IconData icon, String label, isdark) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
+        color: isdark ? Colors.white : AppColors.primary.withOpacity(0.5),
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Row(
@@ -191,7 +194,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
             style: GoogleFonts.inter(
               fontSize: 12.sp,
               fontWeight: FontWeight.w600,
-              color: AppColors.darkTextSecondary,
+              color: Colors.white.withOpacity(0.7),
             ),
           ),
         ],
@@ -409,7 +412,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
                 style: GoogleFonts.inter(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withOpacity(0.5),
                   height: 1.5,
                 ),
               ),
@@ -493,7 +496,17 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
             _buildStatCard(
               context,
               title: 'Last Activity',
-              value: course.lastActivity ?? 'N/A',
+              value: () {
+                if (course.lastActivity == null ||
+                    course.lastActivity == 'Never' ||
+                    course.lastActivity == 'Just now') {
+                  return course.lastActivity ?? 'N/A';
+                }
+                final parsed = DateTime.tryParse(course.lastActivity);
+                return parsed != null
+                    ? DateTimeUtils.formatRelative(parsed)
+                    : course.lastActivity;
+              }(),
               subtitle: 'Keep the streak going!',
               icon: Icons.access_time_rounded,
               colors: [const Color(0xFFF97316), const Color(0xFFDC2626)],
@@ -566,8 +579,8 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
                             color: topic.completed
                                 ? AppColors.success.withOpacity(0.1)
                                 : topic.isLocked
-                                    ? Colors.grey.withOpacity(0.1)
-                                    : AppColors.primary.withOpacity(0.1),
+                                ? Colors.grey.withOpacity(0.1)
+                                : AppColors.primary.withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Center(
@@ -578,19 +591,19 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
                                     size: 24.sp,
                                   )
                                 : topic.isLocked
-                                    ? Icon(
-                                        Icons.lock_outline_rounded,
-                                        color: Colors.grey,
-                                        size: 20.sp,
-                                      )
-                                    : Text(
-                                        '${index + 1}',
-                                        style: GoogleFonts.outfit(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18.sp,
-                                        ),
-                                      ),
+                                ? Icon(
+                                    Icons.lock_outline_rounded,
+                                    color: Colors.grey,
+                                    size: 20.sp,
+                                  )
+                                : Text(
+                                    '${index + 1}',
+                                    style: GoogleFonts.outfit(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18.sp,
+                                    ),
+                                  ),
                           ),
                         ),
                         SizedBox(width: 16.w),
@@ -746,7 +759,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
     required List<Color> colors,
   }) {
     return Container(
-      padding: EdgeInsets.all(16.r),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -775,7 +788,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
                   style: GoogleFonts.inter(
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withOpacity(0.5),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -786,7 +799,7 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
                   color: Colors.white.withOpacity(0.7),
                   borderRadius: BorderRadius.circular(6.r),
                 ),
-                child: Icon(icon, color: Colors.white, size: 14.sp),
+                child: Icon(icon, color: colors.first, size: 14.sp),
               ),
             ],
           ),

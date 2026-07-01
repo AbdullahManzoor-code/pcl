@@ -6,6 +6,9 @@ import '../../../core/utils/haptic_utils.dart';
 import '../../../routes/app_pages.dart';
 import '../../../core/theme/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/utils/datetime_utils.dart';
+import '../../../core/widgets/shimmer_widgets.dart';
+import '../../../core/widgets/app_cached_image.dart';
 
 class MyCoursesView extends GetView<MyCoursesController> {
   const MyCoursesView({super.key});
@@ -16,94 +19,93 @@ class MyCoursesView extends GetView<MyCoursesController> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
+      body: SafeArea(
+        child: Obx(() {
+          if (controller.isLoading.value && controller.enrolledCourses.isEmpty) {
+            return const MyCoursesShimmer();
+          }
 
-        return CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            _buildSliverAppBar(context, isDark),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(24.r, 24.r, 24.r, 0),
-                child: Column(
-                  children: [
-                    _buildStatsSection(context, isDark),
-                    SizedBox(height: 32.h),
-                    Row(
+          return Column(
+            children: [
+              _buildAppBar(context),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async => controller.refreshCourses(),
+                  color: AppColors.primary,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: EdgeInsets.symmetric(horizontal: 24.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.auto_stories_rounded,
-                          color: AppColors.primary,
-                          size: 24.sp,
+                        SizedBox(height: 16.h),
+                        _buildStatsSection(context, isDark),
+                        SizedBox(height: 32.h),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.auto_stories_rounded,
+                              color: AppColors.primary,
+                              size: 24.sp,
+                            ),
+                            SizedBox(width: 12.w),
+                            Text(
+                              'Active Paths',
+                              style: GoogleFonts.outfit(
+                                fontSize: 22.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 12.w),
-                        Text(
-                          'Active Paths',
-                          style: GoogleFonts.outfit(
-                            fontSize: 22.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        SizedBox(height: 16.h),
+                        _buildCourseList(context),
+                        SizedBox(height: 100.h),
                       ],
                     ),
-                    SizedBox(height: 16.h),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              sliver: _buildCourseListSliver(context, isDark),
-            ),
-            SliverToBoxAdapter(child: SizedBox(height: 100.h)),
-          ],
-        );
-      }),
-      // floatingActionButton: FloatingActionButton.extended(
-      //   onPressed: () => _showCreatePathSheet(context),
-      //   backgroundColor: AppColors.primary,
-      //   elevation: 4,
-      //   icon: const Icon(Icons.add_rounded, color: Colors.white),
-      //   label: Text(
-      //     'Create Learning',
-      //     style: GoogleFonts.inter(
-      //       fontWeight: FontWeight.bold,
-      //       color: Colors.white,
-      //     ),
-      //   ),
-      // ),
+            ],
+          );
+        }),
+      ),
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, bool isDark) {
-    return SliverAppBar(
-      expandedHeight: 140.h,
-      pinned: true,
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-      elevation: 0,
-      actions: [
-        IconButton(
-          icon: Icon(Icons.refresh_rounded, color: isDark ? Colors.white : AppColors.darkBg),
-          onPressed: () {
-            HapticUtils.lightImpact();
-            controller.refreshCourses();
-          },
-        ),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        centerTitle: false,
-        titlePadding: EdgeInsets.only(left: 24.w, bottom: 16.h),
-        title: Text(
-          'My Learnings',
-          style: GoogleFonts.outfit(
-            fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : AppColors.darkBg,
+  Widget _buildAppBar(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 8.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'My Learnings',
+            style: GoogleFonts.outfit(
+              fontSize: 32.sp,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-        ),
+          GestureDetector(
+            onTap: () {
+              HapticUtils.lightImpact();
+              controller.refreshCourses();
+            },
+            child: Container(
+              padding: EdgeInsets.all(10.r),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Icon(
+                Icons.refresh_rounded,
+                color: AppColors.primary,
+                size: 24.sp,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -262,10 +264,12 @@ class MyCoursesView extends GetView<MyCoursesController> {
                     padding: EdgeInsets.all(10.r),
                     child: Hero(
                       tag: 'course_icon_${course.id}',
-                      child: Image.network(
-                        course.image,
-                        errorBuilder: (_, __, ___) =>
-                            Icon(Icons.code_rounded, color: AppColors.primary),
+                      child: AppCachedImage(
+                        imageUrl: course.image,
+                        errorWidget: Icon(
+                          Icons.code_rounded,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ),
@@ -349,7 +353,12 @@ class MyCoursesView extends GetView<MyCoursesController> {
                   SizedBox(width: 6.w),
                   Expanded(
                     child: Text(
-                      'Last activity: ${course.lastActivity}',
+                      () {
+                        final raw = course.lastActivity as String?;
+                        if (raw == null || raw == 'Never' || raw == 'Just now') return 'Last activity: ${raw ?? 'Never'}';
+                        final parsed = DateTime.tryParse(raw);
+                        return 'Last activity: ${parsed != null ? DateTimeUtils.formatRelative(parsed) : raw}';
+                      }(),
                       style: GoogleFonts.inter(
                         fontSize: 11.sp,
                         color: Colors.grey,
@@ -372,6 +381,21 @@ class MyCoursesView extends GetView<MyCoursesController> {
     );
   }
 
+  Widget _buildCourseList(BuildContext context) {
+    final courses = controller.enrolledCourses;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (courses.isEmpty && !controller.isLoading.value) {
+      return _buildEmptyState(context);
+    }
+
+    return Column(
+      children: courses
+          .map((course) => _buildCourseCard(context, course))
+          .toList(),
+    );
+  }
+
   Widget _buildCourseListSliver(BuildContext context, bool isDark) {
     final courses = controller.enrolledCourses;
 
@@ -381,9 +405,6 @@ class MyCoursesView extends GetView<MyCoursesController> {
 
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
-        // if (index == courses.length) {
-        //   return _buildCreateNewPathCard(context);
-        // }
         return _buildCourseCard(context, courses[index]);
       }, childCount: courses.length),
     );

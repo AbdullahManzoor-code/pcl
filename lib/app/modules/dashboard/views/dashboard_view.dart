@@ -8,9 +8,12 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/animated_widgets.dart';
 import '../../../core/widgets/special_cards.dart';
 import '../../../core/utils/haptic_utils.dart';
+import '../../../core/utils/datetime_utils.dart';
 import '../controllers/dashboard_controller.dart';
 import '../../../data/models/course_model.dart';
 import '../../../core/widgets/heatmap.dart';
+import '../../../core/widgets/shimmer_widgets.dart';
+import '../../../core/widgets/app_cached_image.dart';
 
 class DashboardView extends GetView<DashboardController> {
   const DashboardView({super.key});
@@ -105,8 +108,8 @@ class DashboardView extends GetView<DashboardController> {
                               controller.goToAllCourses();
                             },
                           ),
-                          // SizedBox(height: 16.h),
-                          // _buildRecommendations(context),
+                          SizedBox(height: 16.h),
+                          _buildRecommendations(context),
                           // SizedBox(height: 32.h),
                           // _buildStatsSection(context),
                           // SizedBox(height: 100.h),
@@ -198,7 +201,7 @@ class DashboardView extends GetView<DashboardController> {
               ),
               Obx(
                 () => Text(
-                  controller.user.value.name ?? 'User',
+                  controller.user.value.name ?? 'Student',
                   style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontSize: 16.sp,
@@ -269,17 +272,12 @@ class DashboardView extends GetView<DashboardController> {
             ),
             child: Row(
               children: [
-                Container(
-                  padding: EdgeInsets.all(10.r),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Icon(
-                    Icons.play_circle_fill_rounded,
-                    color: AppColors.primary,
-                    size: 24.sp,
-                  ),
+                AppCachedImage(
+                  imageUrl: course.image,
+                  width: 44.w,
+                  height: 44.w,
+                  borderRadius: BorderRadius.circular(12.r),
+                  fit: BoxFit.contain,
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
@@ -390,10 +388,19 @@ class DashboardView extends GetView<DashboardController> {
         return const SizedBox.shrink();
       }
       final course = courses.first;
+      // Format real lastActivity timestamp
+      String timeAgoLabel;
+      final raw = course.lastActivity;
+      if (raw == null || raw == 'Never' || raw == 'Just now') {
+        timeAgoLabel = raw ?? 'Never';
+      } else {
+        final parsed = DateTime.tryParse(raw);
+        timeAgoLabel = parsed != null ? DateTimeUtils.formatRelative(parsed) : raw;
+      }
       return LastActivityCard(
         courseTitle: course.title,
-        topicTitle: 'Working with Variables',
-        timeAgo: '2 hours ago',
+        topicTitle: 'Continue Learning',
+        timeAgo: timeAgoLabel,
         progress: course.progress,
         accentColor: _getLanguageColor(course.category),
         onTap: () => controller.openCourse(course),
@@ -405,9 +412,9 @@ class DashboardView extends GetView<DashboardController> {
     return SizedBox(
       height: 200.h,
       child: Obx(() {
-        final courses = controller.recommendedCourses;
+        final courses = controller.enrolledCourses;
         if (courses.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
+          return const RecommendationsShimmer();
         }
         return ListView.separated(
           scrollDirection: Axis.horizontal,
@@ -465,7 +472,13 @@ class DashboardView extends GetView<DashboardController> {
                     ),
                   ),
                 ),
-                Icon(Icons.more_horiz_rounded, color: Colors.grey[400]),
+                AppCachedImage(
+                  imageUrl: course.image,
+                  width: 32.w,
+                  height: 32.w,
+                  borderRadius: BorderRadius.circular(8.r),
+                  fit: BoxFit.contain,
+                ),
               ],
             ),
             const Spacer(),

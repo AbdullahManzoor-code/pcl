@@ -6,6 +6,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/app_logger.dart';
 
 class LearningController extends GetxController {
+  // Loading indicator for pull-to-refresh
+  final isLoading = false.obs;
   final topic = <String, dynamic>{}.obs;
   final isQuizMode = false.obs;
 
@@ -66,6 +68,16 @@ This simple line of code outputs text to the screen.
     isQuizMode.value = true;
     quizQuestionIndex.value = 0;
     quizScore.value = 0;
+  }
+
+  // Refresh data for pull-to-refresh
+  Future<void> refresh() async {
+    AppLogger.info('LearningController.refresh(): pulling to refresh');
+    isLoading.value = true;
+    // Simulate data reload; replace with actual fetch if needed
+    await Future.delayed(const Duration(seconds: 2));
+    // Here you could reload topic, content, etc.
+    isLoading.value = false;
   }
 
   void answerQuiz(int index) {

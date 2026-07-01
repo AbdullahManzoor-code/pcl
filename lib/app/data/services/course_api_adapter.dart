@@ -1,21 +1,21 @@
 import '../models/course_model.dart';
 import '../models/course_api_models.dart';
+import '../../core/utils/course_svg_assets.dart';
 
 class CourseApiAdapter {
   static Course mapLanguageStatsToCourse(LanguageStats stats) {
     final progress = stats.totalTopics > 0
-        ? (stats.topicsCompleted / stats.totalTopics) * 100
+        ? (stats.topicsCompleted / stats.totalTopics)
         : 0.0;
         
     final categoryName = stats.languageName.split(' ').first;
-    final iconName = categoryName.toLowerCase().replaceAll('++', 'plusplus').replaceAll('+', 'p').replaceAll('#', 'sharp');
 
     return Course(
       id: stats.languageId,
       title: stats.languageName,
       category: categoryName,
       level: 'Medium', // Default if not provided
-      image: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/$iconName/$iconName-original.svg',
+      image: CourseSvgAssets.getSvgForLanguage(stats.languageName),
       progress: progress,
       isCompleted: stats.topicsCompleted == stats.totalTopics && stats.totalTopics > 0,
       isEnrolled: true,
@@ -35,14 +35,13 @@ class CourseApiAdapter {
 
   static Course mapCurriculumToCourse(LanguageCurriculum curriculum) {
     final categoryName = curriculum.name.split(' ').first;
-    final iconName = categoryName.toLowerCase().replaceAll('++', 'plusplus').replaceAll('+', 'p').replaceAll('#', 'sharp');
 
     return Course(
       id: curriculum.languageId,
       title: curriculum.name,
       category: categoryName,
       level: 'All Levels', 
-      image: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/$iconName/$iconName-original.svg',
+      image: CourseSvgAssets.getSvgForLanguage(curriculum.name),
       progress: 0.0,
       isCompleted: false,
       isEnrolled: false,

@@ -7,6 +7,7 @@ import '../controllers/practice_controller.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/next_components.dart';
 import '../../../core/utils/haptic_utils.dart';
+import '../../../core/widgets/shimmer_widgets.dart';
 
 class PracticeView extends GetView<PracticeController> {
   const PracticeView({super.key});
@@ -16,56 +17,224 @@ class PracticeView extends GetView<PracticeController> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-      appBar: AppBar(
-        title: Text(
-          'Configure Practice',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-      ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const PracticeShimmer();
         }
         if (controller.availableTopics.isEmpty) {
           return const Center(child: Text('No topics available for practice.'));
         }
-        return SingleChildScrollView(
+        return CustomScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child: Column(
-            children: [
-              SizedBox(height: 16.h),
-              _buildInfoCard(context),
-              SizedBox(height: 24.h),
-              _buildSectionHeader('Select Topic', Icons.track_changes_rounded),
-              SizedBox(height: 16.h),
-              _buildTopicSelector(context),
-              SizedBox(height: 32.h),
-              _buildSectionHeader(
-                'Difficulty Level',
-                Icons.settings_input_component_rounded,
+          slivers: [
+            SliverToBoxAdapter(child: _buildHeader(context, isDark)),
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  SizedBox(height: 16.h),
+                  _buildInfoCard(context),
+                  SizedBox(height: 24.h),
+                  _buildSectionHeader('Select Topic', Icons.track_changes_rounded),
+                  SizedBox(height: 16.h),
+                  _buildTopicSelector(context),
+                  SizedBox(height: 32.h),
+                  _buildSectionHeader(
+                    'Difficulty Level',
+                    Icons.settings_input_component_rounded,
+                  ),
+                  SizedBox(height: 16.h),
+                  _buildDifficultySlider(context),
+                  SizedBox(height: 32.h),
+                  _buildSectionHeader(
+                    'Question Count',
+                    Icons.format_list_numbered_rounded,
+                  ),
+                  SizedBox(height: 16.h),
+                  _buildQuestionCountPicker(context),
+                  SizedBox(height: 32.h),
+                  _buildSectionHeader('Practice Mode', Icons.bolt_rounded),
+                  SizedBox(height: 16.h),
+                  _buildModeSelector(context),
+                  SizedBox(height: 32.h),
+                  _buildStartButton(context),
+                  SizedBox(height: 48.h),
+                ]),
               ),
-              SizedBox(height: 16.h),
-              _buildDifficultySlider(context),
-              SizedBox(height: 32.h),
-              _buildSectionHeader(
-                'Question Count',
-                Icons.format_list_numbered_rounded,
-              ),
-              SizedBox(height: 16.h),
-              _buildQuestionCountPicker(context),
-              SizedBox(height: 32.h),
-              _buildSectionHeader('Practice Mode', Icons.bolt_rounded),
-              SizedBox(height: 16.h),
-              _buildModeSelector(context),
-              SizedBox(height: 32.h),
-              _buildStartButton(context),
-              SizedBox(height: 48.h),
-            ],
-          ),
+            ),
+          ],
         );
       }),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: isDark
+            ? LinearGradient(
+                colors: [
+                  AppColors.darkBg,
+                  AppColors.primary.withOpacity(0.30),
+                  AppColors.darkBg,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : AppColors.practiceGradient,
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            // decorative circles
+            Positioned(
+              top: -30,
+              right: -30,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.06),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 60,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.04),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 28.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // top bar row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Get.back(),
+                        child: Container(
+                          padding: EdgeInsets.all(8.r),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 18.sp,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          HapticUtils.lightImpact();
+                          controller.fetchAvailableTopics();
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(8.r),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Icon(
+                            Icons.refresh_rounded,
+                            color: Colors.white,
+                            size: 20.sp,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                  // icon emblem
+                  Container(
+                    padding: EdgeInsets.all(14.r),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(18.r),
+                    ),
+                    child: Icon(
+                      Icons.psychology_rounded,
+                      color: Colors.white,
+                      size: 30.sp,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'Practice',
+                    style: GoogleFonts.outfit(
+                      fontSize: 32.sp,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.1,
+                    ),
+                  ),
+                  Text(
+                    'Configure your session & start',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14.sp,
+                      color: Colors.white.withOpacity(0.75),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  // stat pills
+                  Obx(() => Row(
+                    children: [
+                      _buildHeaderPill(
+                        Icons.track_changes_rounded,
+                        '${controller.availableTopics.length} Topics',
+                      ),
+                      SizedBox(width: 10.w),
+                      _buildHeaderPill(
+                        Icons.format_list_numbered_rounded,
+                        '${controller.selectedQuestionCount.value} Questions',
+                      ),
+                    ],
+                  )),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderPill(IconData icon, String label) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(30.r),
+        border: Border.all(color: Colors.white.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 14.sp),
+          SizedBox(width: 6.w),
+          Text(
+            label,
+            style: GoogleFonts.outfit(
+              fontSize: 13.sp,
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -240,6 +409,7 @@ class PracticeView extends GetView<PracticeController> {
             return Padding(
               padding: EdgeInsets.only(right: 8.w),
               child: ChoiceChip(
+                backgroundColor: AppColors.lightTextTertiary,
                 label: Text('$count Qs'),
                 selected: isSelected,
                 onSelected: (_) {

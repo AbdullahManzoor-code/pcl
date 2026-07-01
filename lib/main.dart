@@ -38,6 +38,8 @@ class AppEntry extends StatelessWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode: themeService.theme,
           debugShowCheckedModeBanner: false,
+          defaultTransition: Transition.cupertino,
+          transitionDuration: const Duration(milliseconds: 320),
         );
       },
     );

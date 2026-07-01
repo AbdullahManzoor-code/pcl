@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+import '../../../core/utils/datetime_utils.dart';
 import 'package:pcl/app/core/theme/app_theme.dart';
 import 'package:pcl/app/data/models/exam_api_models.dart';
 
@@ -46,7 +46,7 @@ class SessionHistoryList extends StatelessWidget {
           style: Get.textTheme.titleSmall,
         ),
         subtitle: Text(
-          'Score: ${(session.overallScore * 100).toStringAsFixed(0)}% • ${DateFormat.yMMMd().format(session.completedAt)}',
+          'Score: ${(session.overallScore * 100).toStringAsFixed(0)}% • ${DateTimeUtils.formatDate(session.completedAt)}',
         ),
         trailing: Text(
           session.sessionType.capitalizeFirst ?? '',

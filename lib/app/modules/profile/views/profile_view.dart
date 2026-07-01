@@ -7,7 +7,9 @@ import 'dart:math' as math;
 import '../controllers/profile_controller.dart';
 import '../../../routes/app_pages.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/datetime_utils.dart';
 import '../../../core/widgets/next_components.dart';
+import '../../../core/widgets/shimmer_widgets.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../../../data/models/achievement_model.dart';
 import '../../../data/models/profile_stats_model.dart';
@@ -51,7 +53,7 @@ class ProfileView extends GetView<ProfileController> {
                         return Column(
                           children: [
                             _buildSectionHeader(
-                              '⚠️  Knowledge Decay Alerts',
+                              'Knowledge Decay Alerts',
                               isDark,
                               subtitle: 'Topics losing mastery from inactivity',
                             ),
@@ -72,7 +74,7 @@ class ProfileView extends GetView<ProfileController> {
                         return Column(
                           children: [
                             _buildSectionHeader(
-                              '🕐  Recent Sessions',
+                              'Recent Sessions',
                               isDark,
                               subtitle: 'Your last quiz performances',
                               action: GestureDetector(
@@ -112,7 +114,7 @@ class ProfileView extends GetView<ProfileController> {
                         return Column(
                           children: [
                             _buildSectionHeader(
-                              '📊  Topic Mastery',
+                              'Topic Mastery',
                               isDark,
                               subtitle: 'Your knowledge across all topics',
                             ),
@@ -164,7 +166,7 @@ class ProfileView extends GetView<ProfileController> {
                                   : controller.phoneValue.value,
                               () {},
                               icon: Icons.phone_iphone_rounded,
-                              iconColor: Colors.teal,
+                              iconColor: AppColors.primary,
                             ),
                           ]),
                           SizedBox(height: 20.h),
@@ -176,7 +178,7 @@ class ProfileView extends GetView<ProfileController> {
                               controller.isDarkMode,
                               (_) => controller.toggleTheme(),
                               icon: Icons.dark_mode_outlined,
-                              iconColor: Colors.amber,
+                              iconColor: AppColors.primary,
                             ),
                             _buildSettingActionRow(
                               context,
@@ -184,7 +186,7 @@ class ProfileView extends GetView<ProfileController> {
                               'Configure your alerts',
                               () => Get.toNamed(Routes.notifications),
                               icon: Icons.notifications_none_rounded,
-                              iconColor: Colors.orange,
+                              iconColor: AppColors.primary,
                             ),
                           ]),
                           SizedBox(height: 20.h),
@@ -195,7 +197,7 @@ class ProfileView extends GetView<ProfileController> {
                               'Secure your account',
                               () => Get.toNamed(Routes.changePassword),
                               icon: Icons.lock_outline_rounded,
-                              iconColor: AppColors.error,
+                              iconColor: AppColors.primary,
                             ),
                           ]),
                           SizedBox(height: 20.h),
@@ -207,7 +209,7 @@ class ProfileView extends GetView<ProfileController> {
                               () =>
                                   _showPlaceholderSheet(context, 'Help Center'),
                               icon: Icons.help_outline_rounded,
-                              iconColor: Colors.indigo,
+                              iconColor: AppColors.primary,
                             ),
                             _buildSettingActionRow(
                               context,
@@ -218,7 +220,7 @@ class ProfileView extends GetView<ProfileController> {
                                 'Privacy Policy',
                               ),
                               icon: Icons.description_outlined,
-                              iconColor: Colors.grey,
+                              iconColor: AppColors.primary,
                             ),
                           ]),
                           SizedBox(height: 32.h),
@@ -252,8 +254,11 @@ class ProfileView extends GetView<ProfileController> {
       expandedHeight: 300.h,
       pinned: true,
       stretch: true,
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.darkTextPrimary,
       elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24.r)),
+      ),
       flexibleSpace: FlexibleSpaceBar(
         stretchModes: const [StretchMode.zoomBackground],
         background: _buildUserBanner(context, isDark),
@@ -265,166 +270,161 @@ class ProfileView extends GetView<ProfileController> {
     final user = controller.user.value;
     final initials = _getInitials(user?.name ?? user?.email ?? 'U');
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF6C63FF),
-            const Color(0xFF3B82F6),
-            AppColors.primary,
-          ],
-          stops: const [0.0, 0.5, 1.0],
-        ),
-      ),
-      child: Stack(
-        children: [
-          // Background decorative circles
-          Positioned(
-            right: -40.w,
-            top: -30.h,
-            child: Container(
-              width: 200.w,
-              height: 200.h,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+    return ClipRRect(
+      borderRadius: BorderRadius.vertical(bottom: Radius.circular(24.r)),
+      child: Container(
+        decoration: BoxDecoration(gradient: AppColors.heroGradient),
+        child: Stack(
+          children: [
+            // Background decorative circles
+            Positioned(
+              right: -40.w,
+              top: -30.h,
+              child: Container(
+                width: 200.w,
+                height: 200.h,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.05),
+                ),
               ),
             ),
-          ),
-          Positioned(
-            left: -60.w,
-            bottom: 20.h,
-            child: Container(
-              width: 160.w,
-              height: 160.h,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.07),
+            Positioned(
+              left: -60.w,
+              bottom: 20.h,
+              child: Container(
+                width: 160.w,
+                height: 160.h,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.07),
+                ),
               ),
             ),
-          ),
-          // Main content
-          SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(height: 12.h),
-                // Avatar
-                Hero(
-                  tag: 'profile_avatar',
-                  child: Container(
-                    padding: EdgeInsets.all(3.r),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withOpacity(0.8),
-                          Colors.white.withOpacity(0.3),
+            // Main content
+            SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(height: 12.h),
+                  // Avatar
+                  Hero(
+                    tag: 'profile_avatar',
+                    child: Container(
+                      padding: EdgeInsets.all(3.r),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white.withOpacity(0.8),
+                            Colors.white.withOpacity(0.3),
+                          ],
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          Obx(() {
+                            final pic = controller.profileImageUrl.value;
+                            return CircleAvatar(
+                              radius: 48.r,
+                              backgroundColor: Colors.white.withOpacity(0.2),
+                              backgroundImage: pic != null && pic.isNotEmpty
+                                  ? FileImage(File(pic)) as ImageProvider
+                                  : null,
+                              child: pic == null || pic.isEmpty
+                                  ? Text(
+                                      initials,
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 36.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : null,
+                            );
+                          }),
+                          Positioned.fill(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () => controller.changeProfilePicture(),
+                                borderRadius: BorderRadius.circular(50.r),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: EdgeInsets.all(5.r),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF34D399),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.camera_alt_rounded,
+                                color: Colors.white,
+                                size: 12.sp,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    child: Stack(
-                      children: [
-                        Obx(() {
-                          final pic = controller.profileImageUrl.value;
-                          return CircleAvatar(
-                            radius: 48.r,
-                            backgroundColor: Colors.white.withOpacity(0.2),
-                            backgroundImage: pic != null && pic.isNotEmpty
-                                ? FileImage(File(pic)) as ImageProvider
-                                : null,
-                            child: pic == null || pic.isEmpty
-                                ? Text(
-                                    initials,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 36.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : null,
-                          );
-                        }),
-                        Positioned.fill(
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () => controller.changeProfilePicture(),
-                              borderRadius: BorderRadius.circular(50.r),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: EdgeInsets.all(5.r),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF34D399),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: Icon(
-                              Icons.camera_alt_rounded,
-                              color: Colors.white,
-                              size: 12.sp,
-                            ),
-                          ),
-                        ),
-                      ],
+                  ),
+                  SizedBox(height: 12.h),
+                  Text(
+                    user?.name ?? user?.email?.split('@').first ?? 'User',
+                    style: GoogleFonts.outfit(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                ),
-                SizedBox(height: 12.h),
-                Text(
-                  user?.name ?? user?.email?.split('@').first ?? 'User',
-                  style: GoogleFonts.outfit(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  SizedBox(height: 4.h),
+                  Text(
+                    user?.email ?? '',
+                    style: GoogleFonts.inter(
+                      fontSize: 13.sp,
+                      color: Colors.white.withOpacity(0.75),
+                    ),
                   ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  user?.email ?? '',
-                  style: GoogleFonts.inter(
-                    fontSize: 13.sp,
-                    color: Colors.white.withOpacity(0.75),
-                  ),
-                ),
-                SizedBox(height: 16.h),
-                // XP + Level chips
-                Obx(() {
-                  final loading = controller.isStatsLoading.value;
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildHeroBadge(
-                        Icons.auto_awesome_rounded,
-                        loading ? '...' : '${controller.formattedXP} XP',
-                        const Color(0xFFFBBF24),
-                      ),
-                      SizedBox(width: 10.w),
-                      _buildHeroBadge(
-                        Icons.workspace_premium_rounded,
-                        loading ? '...' : 'Level ${controller.level}',
-                        const Color(0xFF34D399),
-                      ),
-                      SizedBox(width: 10.w),
-                      _buildHeroBadge(
-                        Icons.local_fire_department_rounded,
-                        loading ? '...' : '${controller.streakDays}d streak',
-                        const Color(0xFFF87171),
-                      ),
-                    ],
-                  );
-                }),
-              ],
+                  SizedBox(height: 16.h),
+                  // XP + Level chips
+                  Obx(() {
+                    final loading = controller.isStatsLoading.value;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildHeroBadge(
+                          Icons.auto_awesome_rounded,
+                          loading ? '...' : '${controller.formattedXP} XP',
+                          const Color(0xFFFBBF24),
+                        ),
+                        SizedBox(width: 10.w),
+                        _buildHeroBadge(
+                          Icons.workspace_premium_rounded,
+                          loading ? '...' : 'Level ${controller.level}',
+                          const Color(0xFF34D399),
+                        ),
+                        SizedBox(width: 10.w),
+                        _buildHeroBadge(
+                          Icons.local_fire_department_rounded,
+                          loading ? '...' : '${controller.streakDays}d streak',
+                          const Color(0xFFF87171),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -440,8 +440,8 @@ class ProfileView extends GetView<ProfileController> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 14.sp),
-          SizedBox(width: 5.w),
+          // Icon(icon, color: color, size: 14.sp),
+          // SizedBox(width: 5.w),
           Text(
             text,
             style: GoogleFonts.inter(
@@ -479,7 +479,7 @@ class ProfileView extends GetView<ProfileController> {
         child: Row(
           children: [
             _buildStatColumn(
-              '🎯',
+              '',
               loading
                   ? '—'
                   : '${controller.overallAccuracy.toStringAsFixed(0)}%',
@@ -488,21 +488,21 @@ class ProfileView extends GetView<ProfileController> {
             ),
             _buildStatDivider(isDark),
             _buildStatColumn(
-              '📚',
+              '',
               loading ? '—' : '${controller.totalTopicsCompleted}',
               'Topics Done',
               isDark,
             ),
             _buildStatDivider(isDark),
             _buildStatColumn(
-              '🧪',
+              '',
               loading ? '—' : '${controller.totalSessions}',
               'Quizzes',
               isDark,
             ),
             _buildStatDivider(isDark),
             _buildStatColumn(
-              '⏱',
+              '',
               loading ? '—' : '${controller.totalHours}h',
               'Est. Hours',
               isDark,
@@ -522,8 +522,8 @@ class ProfileView extends GetView<ProfileController> {
     return Expanded(
       child: Column(
         children: [
-          Text(emoji, style: TextStyle(fontSize: 20.sp)),
-          SizedBox(height: 6.h),
+          // Text(emoji, style: TextStyle(fontSize: 20.sp)),
+          // SizedBox(height: 6.h),
           Text(
             value,
             style: GoogleFonts.outfit(
@@ -567,15 +567,11 @@ class ProfileView extends GetView<ProfileController> {
       return Container(
         padding: EdgeInsets.all(20.r),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [const Color(0xFF6C63FF), const Color(0xFF3B82F6)],
-          ),
+          gradient: AppColors.primaryGradient,
           borderRadius: BorderRadius.circular(24.r),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6C63FF).withOpacity(0.35),
+              color: AppColors.darkTextPrimary.withOpacity(0.35),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -1102,7 +1098,12 @@ class ProfileView extends GetView<ProfileController> {
   // SECTION HEADER
   // ══════════════════════════════════════════════════════════════════
 
-  Widget _buildSectionHeader(String title, bool isDark, {String? subtitle, Widget? action}) {
+  Widget _buildSectionHeader(
+    String title,
+    bool isDark, {
+    String? subtitle,
+    Widget? action,
+  }) {
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 0),
       child: Row(
@@ -1452,40 +1453,7 @@ class ProfileView extends GetView<ProfileController> {
   // ══════════════════════════════════════════════════════════════════
 
   Widget _buildLoadingState(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [const Color(0xFF1E1B4B), AppColors.darkBg]
-              : [const Color(0xFF6C63FF), const Color(0xFFF5F7FA)],
-        ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 48.w,
-              height: 48.h,
-              child: CircularProgressIndicator(
-                color: isDark ? AppColors.primary : Colors.white,
-                strokeWidth: 3,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              'Loading profile...',
-              style: GoogleFonts.inter(
-                fontSize: 14.sp,
-                color: isDark ? Colors.white60 : Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return const ProfileShimmer();
   }
 
   // ══════════════════════════════════════════════════════════════════
@@ -1518,12 +1486,7 @@ class ProfileView extends GetView<ProfileController> {
   }
 
   String _formatDate(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Yesterday';
-    if (diff < 7) return '${diff}d ago';
-    return '${dt.day}/${dt.month}';
+    return DateTimeUtils.formatSimpleDate(dt);
   }
 
   ({String label, Color color}) _difficultyLabel(double d) {

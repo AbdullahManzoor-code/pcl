@@ -89,20 +89,23 @@ class LearningHeatmap extends StatelessWidget {
                   final double margin = 2.r;
 
                   // Calculate size to fit horizontally and vertically
-                  double sizeByWidth = (constraints.maxWidth / columns) - (margin * 2);
-                  double sizeByHeight = (constraints.maxHeight / 7) - (margin * 2);
+                  double sizeByWidth =
+                      (constraints.maxWidth / columns) - (margin * 2);
+                  double sizeByHeight =
+                      (constraints.maxHeight / 7) - (margin * 2);
 
                   // Keep it a PERFECT SQUARE, constrained by both dimensions.
                   // Min size: 12.w (so year view is readable and scrolls).
-                  double squareSize = math.max(math.min(sizeByWidth, sizeByHeight), 12.w);
+                  double squareSize = math.max(
+                    math.min(sizeByWidth, sizeByHeight),
+                    12.w,
+                  );
 
                   final grid = isLoading
                       ? _buildSkeleton(isDark, days, squareSize, margin)
                       : _buildHeatmapGrid(isDark, days, squareSize, margin);
 
-                  return Center(
-                    child: grid,
-                  );
+                  return Center(child: grid);
                 },
               ),
             ),
@@ -376,9 +379,9 @@ class LearningHeatmap extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _buildStatItem('🔥', '$currentStreak', 'Streak', isDark),
-        _buildStatItem('📅', '$activeDays', 'Active', isDark),
-        _buildStatItem('🎯', '$avgScore%', 'Avg', isDark),
+        _buildStatItem('', '$currentStreak', 'Streak', isDark),
+        _buildStatItem('', '$activeDays', 'Active', isDark),
+        _buildStatItem('', '$avgScore%', 'Avg', isDark),
       ],
     );
   }
@@ -387,7 +390,7 @@ class LearningHeatmap extends StatelessWidget {
     return Column(
       children: [
         Text(
-          '$emoji $value',
+          '$value',
           style: GoogleFonts.outfit(
             fontSize: 14.sp,
             fontWeight: FontWeight.bold,

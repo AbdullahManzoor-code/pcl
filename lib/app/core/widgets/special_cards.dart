@@ -188,8 +188,8 @@ class StreakCelebrationCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text('🔥', style: TextStyle(fontSize: 32.sp)),
-            SizedBox(width: 12.w),
+            // Text('🔥', style: TextStyle(fontSize: 32.sp)),
+            // SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

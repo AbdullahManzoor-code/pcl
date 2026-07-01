@@ -48,25 +48,25 @@ class AnalyticsController extends GetxController {
     try {
       final results = await Future.wait([
         _dashboardService.getDashboardSummary(selectedLanguage.value),
-        _dashboardService.getActiveTransferBoosts(selectedLanguage.value),
-        _dashboardService.getRecentSynergyBonuses(
-          selectedLanguage.value,
-          days: 7,
-        ),
+        // _dashboardService.getActiveTransferBoosts(selectedLanguage.value),
+        // _dashboardService.getRecentSynergyBonuses(
+        //   selectedLanguage.value,
+        //   days: 7,
+        // ),
       ]);
 
       final summary = results[0] as DashboardSummary;
-      final transferBoosts = results[1] as List<TransferBoost>;
-      final synergyBonuses = results[2] as List<SynergyBonus>;
+      // final transferBoosts = results[1] as List<TransferBoost>;
+      // final synergyBonuses = results[2] as List<SynergyBonus>;
 
       masteryData.assignAll(summary.masteryData);
       recentActivity.assignAll(summary.recentSessions);
       decayAlerts.assignAll(summary.decayAlerts);
       _processActivityData(summary.recentSessions);
 
-      // Store stats
-      activeTransferBoostsCount.value = transferBoosts.length;
-      recentSynergyBonusesCount.value = synergyBonuses.length;
+      // // Store stats
+      // activeTransferBoostsCount.value = transferBoosts.length;
+      // recentSynergyBonusesCount.value = synergyBonuses.length;
 
       // Update additional observables
       conceptsPracticed.value = summary.masteryData.length;
@@ -114,7 +114,12 @@ class AnalyticsController extends GetxController {
   void fetchAnalytics() => fetchAnalyticsData();
 
   // Trigger practice again action
-  void practiceAgain(String conceptId, String? subTopic, {double? difficulty, int? questionCount}) {
+  void practiceAgain(
+    String conceptId,
+    String? subTopic, {
+    double? difficulty,
+    int? questionCount,
+  }) {
     // Navigate to the practice page with pre-filled concept and optional subtopic.
     // Construct query parameters.
     final query = {

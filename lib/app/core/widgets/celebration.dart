@@ -152,13 +152,14 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
-    _progressAnim = Tween<double>(begin: 0, end: widget.accuracy.clamp(0, 1))
-        .animate(CurvedAnimation(parent: _progressCtrl, curve: Curves.easeOut));
-    _masteryAnim =
-        Tween<double>(begin: 0, end: widget.newMasteryScore.clamp(0, 1))
-            .animate(
-              CurvedAnimation(parent: _progressCtrl, curve: Curves.easeOut),
-            );
+    _progressAnim = Tween<double>(
+      begin: 0,
+      end: widget.accuracy.clamp(0, 1),
+    ).animate(CurvedAnimation(parent: _progressCtrl, curve: Curves.easeOut));
+    _masteryAnim = Tween<double>(
+      begin: 0,
+      end: widget.newMasteryScore.clamp(0, 1),
+    ).animate(CurvedAnimation(parent: _progressCtrl, curve: Curves.easeOut));
 
     // Particle rotation
     _particleCtrl = AnimationController(
@@ -171,7 +172,6 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
 
   _PerformanceTier _tierForAccuracy(double accuracy) => _tier(accuracy);
 
-
   @override
   void dispose() {
     _entryCtrl.dispose();
@@ -182,204 +182,213 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Get.isDarkMode;
-    final surfaceColor =
-        isDark ? const Color(0xFF1E1E2E) : Colors.white;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? const Color(0xFF1E1E2E) : Colors.white;
 
-    return FadeTransition(
-      opacity: _fadeAnim,
-      child: Center(
-        child: ScaleTransition(
-          scale: _scaleAnim,
-          child: Container(
-            margin: EdgeInsets.symmetric(horizontal: 24.w),
-            padding: EdgeInsets.all(28.r),
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(32.r),
-              border: Border.all(
-                color: _perfTier.glowColor.withOpacity(0.5),
-                width: 2.w,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _perfTier.glowColor.withOpacity(0.35),
-                  blurRadius: 48.r,
-                  spreadRadius: 12.r,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Animated icon ring ──────────────────────────────
-                _buildIconRing(),
-                SizedBox(height: 20.h),
-
-                // ── Topic tag ───────────────────────────────────────
-                Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-                  decoration: BoxDecoration(
-                    color: _perfTier.glowColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(100.r),
-                    border: Border.all(
-                      color: _perfTier.glowColor.withOpacity(0.4),
-                    ),
+    return Theme(
+      data: isDark ? AppTheme.darkTheme : AppTheme.lightTheme,
+      child: Material(
+        type: MaterialType.transparency,
+        child: FadeTransition(
+          opacity: _fadeAnim,
+          child: Center(
+            child: ScaleTransition(
+              scale: _scaleAnim,
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 24.w),
+                padding: EdgeInsets.all(28.r),
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(32.r),
+                  border: Border.all(
+                    color: _perfTier.glowColor.withOpacity(0.5),
+                    width: 2.w,
                   ),
-                  child: Text(
-                    widget.topicName,
-                    style: GoogleFonts.inter(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: _perfTier.glowColor,
-                      letterSpacing: 0.5,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                SizedBox(height: 16.h),
-
-                // ── Title ───────────────────────────────────────────
-                Text(
-                  _perfTier.label,
-                  style: GoogleFonts.outfit(
-                    fontSize: 28.sp,
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    letterSpacing: 2,
-                  ),
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  _perfTier.subtitle,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 13.sp,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary,
-                  ),
-                ),
-                SizedBox(height: 24.h),
-
-                // ── Stats row ───────────────────────────────────────
-                Row(
-                  children: [
-                    _StatTile(
-                      label: 'Accuracy',
-                      valueAnim: _progressAnim,
-                      suffix: '%',
-                      multiplier: 100,
-                      color: _perfTier.glowColor,
-                    ),
-                    SizedBox(width: 12.w),
-                    _StatTile(
-                      label: 'Mastery',
-                      valueAnim: _masteryAnim,
-                      suffix: '%',
-                      multiplier: 100,
-                      color: AppColors.primary,
-                    ),
-                    SizedBox(width: 12.w),
-                    _StatTile(
-                      label: 'Fluency',
-                      valueAnim: AlwaysStoppedAnimation(
-                        widget.fluencyRatio.clamp(0, 1),
-                      ),
-                      suffix: '%',
-                      multiplier: 100,
-                      color: Colors.teal,
+                  boxShadow: [
+                    BoxShadow(
+                      color: _perfTier.glowColor.withOpacity(0.35),
+                      blurRadius: 48.r,
+                      spreadRadius: 12.r,
                     ),
                   ],
                 ),
-                SizedBox(height: 20.h),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Animated icon ring ──────────────────────────────
+                    _buildIconRing(),
+                    SizedBox(height: 20.h),
 
-                // ── Accuracy bar ────────────────────────────────────
-                _buildProgressBar(
-                  label: 'Accuracy',
-                  anim: _progressAnim,
-                  color: _perfTier.glowColor,
-                  isDark: isDark,
-                ),
-                SizedBox(height: 10.h),
-                _buildProgressBar(
-                  label: 'Mastery',
-                  anim: _masteryAnim,
-                  color: AppColors.primary,
-                  isDark: isDark,
-                ),
-
-                // ── Top recommendation ──────────────────────────────
-                if (widget.recommendations.isNotEmpty) ...[
-                  SizedBox(height: 20.h),
-                  Container(
-                    padding: EdgeInsets.all(14.r),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.05)
-                          : Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(14.r),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.08)
-                            : Colors.grey.shade200,
+                    // ── Topic tag ───────────────────────────────────────
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 4.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _perfTier.glowColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(100.r),
+                        border: Border.all(
+                          color: _perfTier.glowColor.withOpacity(0.4),
+                        ),
+                      ),
+                      child: Text(
+                        widget.topicName,
+                        style: GoogleFonts.inter(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w600,
+                          color: _perfTier.glowColor,
+                          letterSpacing: 0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    SizedBox(height: 16.h),
+
+                    // ── Title ───────────────────────────────────────────
+                    Text(
+                      _perfTier.label,
+                      style: GoogleFonts.outfit(
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w900,
+                        color: isDark
+                            ? Colors.white
+                            : AppColors.lightTextPrimary,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    SizedBox(height: 6.h),
+                    Text(
+                      _perfTier.subtitle,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 13.sp,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                    SizedBox(height: 24.h),
+
+                    // ── Stats row ───────────────────────────────────────
+                    Row(
                       children: [
-                        Icon(
-                          Icons.lightbulb_outline_rounded,
-                          color: Colors.amber,
-                          size: 18.sp,
+                        _StatTile(
+                          label: 'Accuracy',
+                          valueAnim: _progressAnim,
+                          suffix: '%',
+                          multiplier: 100,
+                          color: _perfTier.glowColor,
                         ),
-                        SizedBox(width: 8.w),
-                        Expanded(
-                          child: Text(
-                            widget.recommendations.first,
-                            style: GoogleFonts.inter(
-                              fontSize: 12.sp,
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.lightTextSecondary,
-                              height: 1.5,
-                            ),
+                        SizedBox(width: 12.w),
+                        _StatTile(
+                          label: 'Mastery',
+                          valueAnim: _masteryAnim,
+                          suffix: '%',
+                          multiplier: 100,
+                          color: AppColors.primary,
+                        ),
+                        SizedBox(width: 12.w),
+                        _StatTile(
+                          label: 'Fluency',
+                          valueAnim: AlwaysStoppedAnimation(
+                            widget.fluencyRatio.clamp(0, 1),
                           ),
+                          suffix: '%',
+                          multiplier: 100,
+                          color: Colors.teal,
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    SizedBox(height: 20.h),
 
-                SizedBox(height: 28.h),
+                    // ── Accuracy bar ────────────────────────────────────
+                    _buildProgressBar(
+                      label: 'Accuracy',
+                      anim: _progressAnim,
+                      color: _perfTier.glowColor,
+                      isDark: isDark,
+                    ),
+                    SizedBox(height: 10.h),
+                    _buildProgressBar(
+                      label: 'Mastery',
+                      anim: _masteryAnim,
+                      color: AppColors.primary,
+                      isDark: isDark,
+                    ),
 
-                // ── CTA ─────────────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: widget.onDismiss,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _perfTier.gradientColors.first,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 16.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16.r),
+                    // ── Top recommendation ──────────────────────────────
+                    if (widget.recommendations.isNotEmpty) ...[
+                      SizedBox(height: 20.h),
+                      Container(
+                        padding: EdgeInsets.all(14.r),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(14.r),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.08)
+                                : Colors.grey.shade200,
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Icon(
+                            //   Icons.lightbulb_outline_rounded,
+                            //   color: Colors.amber,
+                            //   size: 18.sp,
+                            // ),
+                            // SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                widget.recommendations.first,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12.sp,
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.lightTextSecondary,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'SEE DETAILED RESULTS',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14.sp,
-                        letterSpacing: 1,
+                    ],
+
+                    SizedBox(height: 28.h),
+
+                    // ── CTA ─────────────────────────────────────────────
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: widget.onDismiss,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _perfTier.gradientColors.first,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'SEE DETAILED RESULTS',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14.sp,
+                            letterSpacing: 1,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -434,11 +443,7 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                     ),
                   ],
                 ),
-                child: Icon(
-                  _perfTier.icon,
-                  size: 36.sp,
-                  color: Colors.white,
-                ),
+                child: Icon(_perfTier.icon, size: 36.sp, color: Colors.white),
               ),
             ],
           ),

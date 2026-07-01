@@ -3,7 +3,9 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/result_history_controller.dart';
 import '../../../routes/app_pages.dart';
-import 'package:intl/intl.dart';
+import '../../../core/utils/datetime_utils.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/widgets/shimmer_widgets.dart';
 
 class ResultHistoryView extends GetView<ResultHistoryController> {
   const ResultHistoryView({Key? key}) : super(key: key);
@@ -25,7 +27,13 @@ class ResultHistoryView extends GetView<ResultHistoryController> {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return ListView.separated(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(24),
+            itemCount: 6,
+            separatorBuilder: (_, __) => SizedBox(height: 12.h),
+            itemBuilder: (_, __) => ShimmerBox(width: double.infinity, height: 80.h, borderRadius: 16),
+          );
         }
 
         if (controller.history.isEmpty) {
@@ -100,7 +108,7 @@ class ResultHistoryView extends GetView<ResultHistoryController> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            DateFormat('MMM d, yyyy • h:mm a').format(item.createdAt.toLocal()),
+                            DateTimeUtils.formatDateTime(item.createdAt),
                             style: GoogleFonts.inter(
                               color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
                               fontSize: 12,

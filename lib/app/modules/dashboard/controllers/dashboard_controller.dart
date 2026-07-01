@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:pcl/app/core/theme/app_theme.dart';
+import 'package:pcl/app/data/models/exam_api_models.dart';
 import 'package:pcl/app/data/models/user_model.dart';
 import '../../../data/services/notification_service.dart';
 
@@ -25,6 +26,7 @@ class DashboardController extends GetxController {
   late final CourseService _courseService;
   late final DashboardService _dashboardService;
   late final AuthService _authService;
+  late final ExamService _examService;
 
   final stats = <String, dynamic>{}.obs;
   final enrolledCourses = <Course>[].obs;
@@ -35,7 +37,7 @@ class DashboardController extends GetxController {
   final Rxn<RecommendedTopic> recommendedTopic = Rxn<RecommendedTopic>();
   final Rx<User> user = User().obs;
   final heatmapDays = <String, HeatmapDay>{}.obs;
-  final heatmapFilter = 'month'.obs; // 'week' | 'month' | '6m' | 'year'
+  final heatmapFilter = 'year'.obs; // 'week' | 'month' | '6m' | 'year'
   final isHeatmapLoading = false.obs;
 
   // Phase 1: New state for mastery and progress
@@ -65,6 +67,7 @@ class DashboardController extends GetxController {
     _courseService = Get.find<CourseService>();
     _dashboardService = Get.find<DashboardService>();
     _authService = Get.find<AuthService>();
+    _examService = Get.find<ExamService>();
     fetchData();
     _checkNotificationPermission();
   }
@@ -313,31 +316,60 @@ class DashboardController extends GetxController {
         return;
       }
 
-      // We need to find the mappingId from the curriculum
+      // Resolve mappingId + majorTopicId from curriculum
       final curriculums = await _courseService.getCurriculum();
       final roadmap =
           curriculums
               .firstWhereOrNull((c) => c.languageId == activeLangId.value)
               ?.roadmap ??
           [];
-      final currTopic = roadmap.firstWhereOrNull(
-        (ct) => ct.majorTopicId == rec.conceptId || ct.subTopics.contains(rec.conceptId),
-      );
-      final mappingId = currTopic?.mappingId ?? 'UNIV_VAR';
-      final resolvedMajorTopicId = currTopic?.majorTopicId ?? rec.conceptId;
 
-      // Navigate to quiz directly
+      // Match by majorTopicId first, then by any subTopic string
+      final currTopic = roadmap.firstWhereOrNull(
+        (ct) =>
+            ct.majorTopicId == rec.conceptId ||
+            ct.majorTopicId.toLowerCase() == rec.conceptId.toLowerCase() ||
+            ct.subTopics.any(
+              (s) => s.toString().toLowerCase() == rec.conceptId.toLowerCase(),
+            ),
+      );
+
+      // Safe fallback: use first available topic rather than invalid 'UNIV_VAR'
+      final fallbackTopic = roadmap.isNotEmpty ? roadmap.first : null;
+      final mappingId =
+          currTopic?.mappingId ??
+          fallbackTopic?.mappingId ??
+          activeLangId.value;
+      final resolvedMajorTopicId =
+          currTopic?.majorTopicId ??
+          fallbackTopic?.majorTopicId ??
+          rec.conceptId;
+
+      AppLogger.info(
+        'DashboardController.navigateToRecommendation(): '
+        'conceptId=${rec.conceptId} → mappingId=$mappingId, majorTopicId=$resolvedMajorTopicId',
+      );
+
+      // Pre-start the exam session so the quiz gets a valid sessionId
+      final userId = _authService.getStoredUser()?.id ?? '';
+      final startReq = ExamStartRequest(
+        userId: userId,
+        languageId: activeLangId.value,
+        majorTopicId: resolvedMajorTopicId,
+        sessionType: 'practice',
+      );
+      final startRes = await _examService.startExamSession(startReq);
+
       Get.toNamed(
         Routes.quiz,
         arguments: {
-          'sessionId': '',
-          'startTime': null,
+          'sessionId': startRes.sessionId,
+          'startTime': startRes.startedAt,
           'languageId': activeLangId.value,
           'mappingId': mappingId,
           'majorTopicId': resolvedMajorTopicId,
           'numQuestions': 10,
-          'mode':
-              'practice', // Must match submission type for non-diagnostic quizzes
+          'mode': 'practice',
           'difficulty': rec.targetDifficulty,
           'isDiagnostic': false,
         },

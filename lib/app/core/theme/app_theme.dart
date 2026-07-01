@@ -60,9 +60,13 @@ class AppColors {
   static const Color errorTextLight = Color(0xFFDC2626);
   static const Color errorTextDark = Color(0xFFF87171);
 
-  // Gradients
-  static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primary, violet600],
+  // Gradients — all rooted in AppColors.primary for a unified colour scheme
+  static LinearGradient primaryGradient = LinearGradient(
+    colors: [
+      primary.withOpacity(0.8),
+      primary.withOpacity(0.5),
+      primary.withOpacity(0.8),
+    ],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -73,8 +77,29 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient diagnosticGradient = LinearGradient(
-    colors: [Color(0xFFF59E0B), Color(0xFFEA580C)], // Amber-500 to Orange-600
+  // Analytics header: primary → indigo (blue family)
+  static LinearGradient analyticsGradient = LinearGradient(
+    colors: [primary.withOpacity(0.5), primary, primary.withOpacity(0.5)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Practice header: primary → info/sky (blue family, lighter)
+  static LinearGradient practiceGradient = LinearGradient(
+    colors: [primary.withOpacity(0.5), primary, primary.withOpacity(0.5)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Splash / hero banner: primary → violet → indigo
+  static LinearGradient heroGradient = LinearGradient(
+    colors: [primary.withOpacity(0.5), primary, primary.withOpacity(0.5)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static LinearGradient diagnosticGradient = LinearGradient(
+    colors: [primary.withOpacity(0.5), primary, primary.withOpacity(0.5)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

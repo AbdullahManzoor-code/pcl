@@ -8,8 +8,9 @@ import '../../../core/widgets/enhanced_navigation.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../controllers/courses_controller.dart';
 import '../../../data/models/course_model.dart';
-
 import '../../../routes/app_pages.dart';
+import '../../../core/widgets/shimmer_widgets.dart';
+import '../../../core/widgets/app_cached_image.dart';
 
 class CoursesView extends GetView<CoursesController> {
   const CoursesView({super.key});
@@ -28,7 +29,7 @@ class CoursesView extends GetView<CoursesController> {
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const CoursesListShimmer();
                 }
 
                 if (controller.filteredCourses.isEmpty) {
@@ -214,26 +215,12 @@ class CoursesView extends GetView<CoursesController> {
           ),
           child: Row(
             children: [
-              // Icon Container
-              Container(
+              AppCachedImage(
+                imageUrl: course.image,
                 width: 70.w,
                 height: 70.w,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      accentColor.withOpacity(0.2),
-                      accentColor.withOpacity(0.1),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-                child: Icon(
-                  Icons.code_rounded,
-                  color: accentColor,
-                  size: 28.sp,
-                ),
+                borderRadius: BorderRadius.circular(16.r),
+                fit: BoxFit.contain,
               ),
               SizedBox(width: 16.w),
               // Content

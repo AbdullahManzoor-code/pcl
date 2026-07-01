@@ -8,6 +8,8 @@ import '../../../core/widgets/next_components.dart';
 import '../../../core/utils/haptic_utils.dart';
 import '../../../data/models/dashboard_api_models.dart';
 import 'package:intl/intl.dart';
+import '../../../core/utils/datetime_utils.dart';
+import '../../../core/widgets/shimmer_widgets.dart';
 
 class AnalyticsView extends GetView<AnalyticsController> {
   const AnalyticsView({super.key});
@@ -17,50 +19,206 @@ class AnalyticsView extends GetView<AnalyticsController> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-      appBar: AppBar(
-        title: Text(
-          'Analytics & Insights',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () {
-              HapticUtils.lightImpact();
-              controller.fetchAnalytics();
-            },
-          ),
-          SizedBox(width: 8.w),
-        ],
-      ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const AnalyticsShimmer();
         }
 
-        return SingleChildScrollView(
+        return CustomScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 16.h),
-              _buildStatsGrid(context),
-              SizedBox(height: 32.h),
-              _buildSectionHeader('Mastery Progress', Icons.insights_rounded),
-              SizedBox(height: 16.h),
-              _buildMasteryGrid(context),
-              SizedBox(height: 32.h),
-              // DecayAlertsWidget(alerts: controller.decayAlerts),
-              SizedBox(height: 32.h),
-              _buildSectionHeader('Recent Sessions', Icons.history_rounded),
-              SizedBox(height: 16.h),
-              _buildSessionsTimeline(context),
-              SizedBox(height: 80.h),
-            ],
-          ),
+          slivers: [
+            SliverToBoxAdapter(child: _buildHeader(context, isDark)),
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  SizedBox(height: 24.h),
+                  _buildStatsGrid(context),
+                  SizedBox(height: 32.h),
+                  _buildSectionHeader('Mastery Progress', Icons.insights_rounded),
+                  SizedBox(height: 16.h),
+                  _buildMasteryGrid(context),
+                  SizedBox(height: 32.h),
+                  _buildSectionHeader('Recent Sessions', Icons.history_rounded),
+                  SizedBox(height: 16.h),
+                  _buildSessionsTimeline(context),
+                  SizedBox(height: 80.h),
+                ]),
+              ),
+            ),
+          ],
         );
       }),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: isDark
+            ? LinearGradient(
+                colors: [
+                  AppColors.darkBg,
+                  AppColors.primary.withOpacity(0.30),
+                  AppColors.darkBg,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : AppColors.analyticsGradient,
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            // decorative circles
+            Positioned(
+              top: -30,
+              right: -30,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.06),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 60,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.04),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 28.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // top bar row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Get.back(),
+                        child: Container(
+                          padding: EdgeInsets.all(8.r),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 18.sp,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          HapticUtils.lightImpact();
+                          controller.fetchAnalytics();
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(8.r),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Icon(
+                            Icons.refresh_rounded,
+                            color: Colors.white,
+                            size: 20.sp,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                  // icon emblem
+                  Container(
+                    padding: EdgeInsets.all(14.r),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(18.r),
+                    ),
+                    child: Icon(
+                      Icons.analytics_rounded,
+                      color: Colors.white,
+                      size: 30.sp,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'Analytics',
+                    style: GoogleFonts.outfit(
+                      fontSize: 32.sp,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.1,
+                    ),
+                  ),
+                  Text(
+                    'Track your learning insights',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14.sp,
+                      color: Colors.white.withOpacity(0.75),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  // stat pills
+                  Obx(() => Row(
+                    children: [
+                      _buildHeaderPill(
+                        Icons.bolt_rounded,
+                        '${controller.totalSessions.value} Sessions',
+                      ),
+                      SizedBox(width: 10.w),
+                      _buildHeaderPill(
+                        Icons.track_changes_rounded,
+                        '${controller.conceptsPracticed.value} Concepts',
+                      ),
+                    ],
+                  )),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderPill(IconData icon, String label) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(30.r),
+        border: Border.all(color: Colors.white.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 14.sp),
+          SizedBox(width: 6.w),
+          Text(
+            label,
+            style: GoogleFonts.outfit(
+              fontSize: 13.sp,
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -474,13 +632,6 @@ class AnalyticsView extends GetView<AnalyticsController> {
   }
 
   String _getRelativeTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) return 'Just now';
-    if (difference.inMinutes < 60) return '${difference.inMinutes} mins ago';
-    if (difference.inHours < 24) return '${difference.inHours} hours ago';
-    if (difference.inDays < 7) return '${difference.inDays} days ago';
-    return DateFormat.yMMMd().format(dateTime);
+    return DateTimeUtils.formatRelative(dateTime);
   }
 }

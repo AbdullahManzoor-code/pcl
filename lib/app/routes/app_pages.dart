@@ -57,142 +57,193 @@ class AppPages {
   }
 
   static final routes = [
-    // We will populate this as we build modules
+    // ── Splash ───────────────────────────────────────────────────────
     GetPage(
       name: _Paths.splash,
       page: () => const SplashView(),
       binding: SplashBinding(),
+      transition: Transition.fade,
+      transitionDuration: const Duration(milliseconds: 600),
     ),
+    // ── Auth ─────────────────────────────────────────────────────────
     GetPage(
       name: _Paths.auth,
       page: () => const LoginView(),
       binding: AuthBinding(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 350),
     ),
     GetPage(
       name: _Paths.register,
       page: () => const RegisterView(),
       binding: AuthBinding(),
-    ),
-    GetPage(
-      name: _Paths.onboarding,
-      page: () => const OnboardingView(),
-      binding: OnboardingBinding(),
-    ),
-    GetPage(
-      name: _Paths.languageSelection,
-      page: () => const LanguageSelectionView(),
-      binding: LanguageSelectionBinding(),
-    ),
-    GetPage(
-      name: _Paths.results,
-      page: () => ResultsView(),
-      binding: ResultsBinding(),
-    ),
-    GetPage(
-      name: _Paths.resultHistory,
-      page: () => const ResultHistoryView(),
-      // We are just injecting the controller directly in the view
-    ),
-
-    GetPage(
-      name: _Paths.dashboard,
-      page: () => const DashboardView(),
-      binding: DashboardBinding(),
-    ),
-    GetPage(
-      name: _Paths.learning,
-      page: () => const LearningView(),
-      binding: LearningBinding(),
-    ),
-    GetPage(
-      name: _Paths.profile,
-      page: () => const ProfileView(),
-      binding: ProfileBinding(),
-    ),
-    GetPage(
-      name: _Paths.courseDetails,
-      page: () => const CourseDetailsView(),
-      binding: CourseDetailsBinding(),
-    ),
-    GetPage(
-      name: _Paths.quiz,
-      page: () => const QuizView(),
-      binding: QuizBinding(),
-    ),
-    GetPage(
-      name: _Paths.notifications,
-      page: () => const NotificationsView(),
-      binding: NotificationsBinding(),
-    ),
-    GetPage(
-      name: _Paths.main,
-      page: () => const MainView(),
-      binding: MainBinding(),
-    ),
-    GetPage(
-      name: _Paths.courses,
-      page: () => const CoursesView(),
-      binding: CoursesBinding(),
-    ),
-    GetPage(
-      name: _Paths.notifications,
-      page: () => const NotificationsView(),
-      binding: NotificationsBinding(),
-    ),
-    GetPage(
-      name: _Paths.myCourses,
-      page: () => const MyCoursesView(),
-      binding: MyCoursesBinding(),
-    ),
-    // GetPage(
-    //   name: _Paths.landing,
-    //   page: () => const LandingView(),
-    //   binding: LandingBinding(),
-    // ),
-    GetPage(
-      name: _Paths.practice,
-      page: () => const PracticeView(),
-      binding: PracticeBinding(),
-    ),
-    GetPage(
-      name: _Paths.analytics,
-      page: () => const AnalyticsView(),
-      binding: AnalyticsBinding(),
-    ),
-    GetPage(
-      name: _Paths.reports,
-      page: () => const ReportsView(),
-      binding: ReportsBinding(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 320),
     ),
     GetPage(
       name: _Paths.forgotPassword,
       page: () => const ForgotPasswordView(),
       binding: AuthBinding(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 320),
     ),
     GetPage(
       name: _Paths.resetEmailSent,
       page: () => const ResetEmailSentView(),
       binding: AuthBinding(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 350),
     ),
     GetPage(
       name: _Paths.resetPassword,
       page: () => const ResetPasswordView(),
       binding: AuthBinding(),
-    ),
-    GetPage(
-      name: _Paths.changePassword,
-      page: () => const ChangePasswordView(),
-      binding: ProfileBinding(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 320),
     ),
     GetPage(
       name: _Paths.emailVerification,
       page: () => const EmailVerificationView(),
       binding: AuthBinding(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 350),
     ),
     GetPage(
       name: _Paths.verificationSent,
       page: () => const VerificationSentView(),
       binding: AuthBinding(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 350),
+    ),
+    // ── Onboarding ───────────────────────────────────────────────────
+    GetPage(
+      name: _Paths.onboarding,
+      page: () => const OnboardingView(),
+      binding: OnboardingBinding(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: _Paths.languageSelection,
+      page: () => const LanguageSelectionView(),
+      binding: LanguageSelectionBinding(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 320),
+    ),
+    // ── Main shell (tab bar) ─────────────────────────────────────────
+    GetPage(
+      name: _Paths.main,
+      page: () => const MainView(),
+      binding: MainBinding(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    // ── Dashboard ────────────────────────────────────────────────────
+    GetPage(
+      name: _Paths.dashboard,
+      page: () => const DashboardView(),
+      binding: DashboardBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    // ── Courses / Explore ────────────────────────────────────────────
+    GetPage(
+      name: _Paths.courses,
+      page: () => const CoursesView(),
+      binding: CoursesBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: _Paths.courseDetails,
+      page: () => const CourseDetailsView(),
+      binding: CourseDetailsBinding(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 350),
+    ),
+    GetPage(
+      name: _Paths.myCourses,
+      page: () => const MyCoursesView(),
+      binding: MyCoursesBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    // ── Learning / Topic content ──────────────────────────────────────
+    GetPage(
+      name: _Paths.learning,
+      page: () => const LearningView(),
+      binding: LearningBinding(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 320),
+    ),
+    // ── Quiz ─────────────────────────────────────────────────────────
+    GetPage(
+      name: _Paths.quiz,
+      page: () => const QuizView(),
+      binding: QuizBinding(),
+      transition: Transition.downToUp,
+      transitionDuration: const Duration(milliseconds: 380),
+    ),
+    // ── Results ──────────────────────────────────────────────────────
+    GetPage(
+      name: _Paths.results,
+      page: () => ResultsView(),
+      binding: ResultsBinding(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 380),
+    ),
+    GetPage(
+      name: _Paths.resultHistory,
+      page: () => const ResultHistoryView(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    // ── Profile ──────────────────────────────────────────────────────
+    GetPage(
+      name: _Paths.profile,
+      page: () => const ProfileView(),
+      binding: ProfileBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    GetPage(
+      name: _Paths.changePassword,
+      page: () => const ChangePasswordView(),
+      binding: ProfileBinding(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: const Duration(milliseconds: 320),
+    ),
+    // ── Practice ─────────────────────────────────────────────────────
+    GetPage(
+      name: _Paths.practice,
+      page: () => const PracticeView(),
+      binding: PracticeBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    // ── Analytics / Insights ─────────────────────────────────────────
+    GetPage(
+      name: _Paths.analytics,
+      page: () => const AnalyticsView(),
+      binding: AnalyticsBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    // ── Reports ──────────────────────────────────────────────────────
+    GetPage(
+      name: _Paths.reports,
+      page: () => const ReportsView(),
+      binding: ReportsBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+    // ── Notifications ────────────────────────────────────────────────
+    GetPage(
+      name: _Paths.notifications,
+      page: () => const NotificationsView(),
+      binding: NotificationsBinding(),
+      transition: Transition.downToUp,
+      transitionDuration: const Duration(milliseconds: 300),
     ),
   ];
 }

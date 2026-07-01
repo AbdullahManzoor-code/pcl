@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/reports_controller.dart';
 import '../../../core/widgets/next_components.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../core/widgets/shimmer_widgets.dart';
 
 class ReportsView extends GetView<ReportsController> {
   const ReportsView({super.key});
@@ -120,7 +122,13 @@ class ReportsView extends GetView<ReportsController> {
   Widget _buildList() {
     return Obx(() {
       if (controller.isLoading.value && controller.reports.isEmpty) {
-        return const Center(child: CircularProgressIndicator());
+        return ListView.separated(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.all(16.r),
+          itemCount: 5,
+          separatorBuilder: (_, __) => SizedBox(height: 12.h),
+          itemBuilder: (_, __) => ShimmerBox(width: double.infinity, height: 70.h, borderRadius: 12),
+        );
       }
       if (controller.reports.isEmpty) {
         return const Center(child: Text('No reports yet'));
