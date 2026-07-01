@@ -588,32 +588,19 @@ class OnboardingView extends GetView<OnboardingController> {
                       : const SizedBox.shrink(),
                   Row(
                     children: [
-                      if (controller.currentPage.value >= 3)
-                        TextButton(
-                          onPressed: () {
-                            HapticUtils.lightImpact();
-                            controller.skip();
-                          },
-                          child: Text(
-                            "Skip",
-                            style: GoogleFonts.inter(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      SizedBox(width: 12.w),
                       SizedBox(
                         width: 140.w,
                         child: NextButton(
                           text: controller.currentPage.value < 3
                               ? "Next"
                               : "Continue",
-                          onPressed: () {
-                            HapticUtils.mediumImpact();
-                            controller.next();
-                          },
+                          onPressed: (controller.currentPage.value == 3 && controller.selectedLanguage.value == null) ||
+                                     (controller.currentPage.value == 4 && controller.selectedDifficulty.value == null)
+                              ? null
+                              : () {
+                                  HapticUtils.mediumImpact();
+                                  controller.next();
+                                },
                         ),
                       ),
                     ],

@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:pcl/app/core/theme/app_theme.dart';
 import 'package:pcl/app/data/models/user_model.dart';
+import '../../../data/services/notification_service.dart';
 
 import '../../../core/utils/app_logger.dart';
 import '../../../data/models/course_model.dart';
@@ -64,6 +66,30 @@ class DashboardController extends GetxController {
     _dashboardService = Get.find<DashboardService>();
     _authService = Get.find<AuthService>();
     fetchData();
+    _checkNotificationPermission();
+  }
+
+  void _checkNotificationPermission() async {
+    final storage = GetStorage();
+    if (storage.read('isFirstTimeDashboard') ?? true) {
+      AppLogger.info(
+        'DashboardController._checkNotificationPermission(): requesting notification permissions',
+      );
+      try {
+        final notificationService = Get.find<NotificationService>();
+        final granted = await notificationService.requestPermissions();
+        AppLogger.info(
+          'DashboardController._checkNotificationPermission(): notification permission granted=$granted',
+        );
+      } catch (e, st) {
+        AppLogger.error(
+          'DashboardController._checkNotificationPermission(): request failed',
+          e,
+          st,
+        );
+      }
+      storage.write('isFirstTimeDashboard', false);
+    }
   }
 
   void fetchData() async {
@@ -295,9 +321,10 @@ class DashboardController extends GetxController {
               ?.roadmap ??
           [];
       final currTopic = roadmap.firstWhereOrNull(
-        (ct) => ct.majorTopicId == rec.conceptId,
+        (ct) => ct.majorTopicId == rec.conceptId || ct.subTopics.contains(rec.conceptId),
       );
       final mappingId = currTopic?.mappingId ?? 'UNIV_VAR';
+      final resolvedMajorTopicId = currTopic?.majorTopicId ?? rec.conceptId;
 
       // Navigate to quiz directly
       Get.toNamed(
@@ -307,9 +334,10 @@ class DashboardController extends GetxController {
           'startTime': null,
           'languageId': activeLangId.value,
           'mappingId': mappingId,
-          'majorTopicId': rec.conceptId,
+          'majorTopicId': resolvedMajorTopicId,
           'numQuestions': 10,
-          'mode': 'exam', // Encourage testing
+          'mode':
+              'practice', // Must match submission type for non-diagnostic quizzes
           'difficulty': rec.targetDifficulty,
           'isDiagnostic': false,
         },

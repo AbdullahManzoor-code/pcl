@@ -488,7 +488,7 @@ class QuizController extends GetxController with WidgetsBindingObserver {
         sessionId: sessionId,
         languageId: languageId,
         majorTopicId: majorTopicId,
-        sessionType: isDiagnostic.value ? 'diagnostic' : 'practice',
+        sessionType: isDiagnostic.value ? 'diagnostic' : mode,
         results: results,
         totalTimeSeconds: elapsedSeconds,
       );

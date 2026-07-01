@@ -76,21 +76,6 @@ Future<void> main() async {
     return true;
   };
 
-  // Notification permissions on first launch
-  final storage = GetStorage();
-  if (storage.read('isFirstLaunch') ?? true) {
-    AppLogger.info(
-      'main(): requesting notification permissions on first launch',
-    );
-    try {
-      final notificationService = Get.find<NotificationService>();
-      final granted = await notificationService.requestPermissions();
-      AppLogger.info('main(): notification permission granted=$granted');
-    } catch (e, st) {
-      AppLogger.error('main(): notification permission request failed', e, st);
-    }
-    storage.write('isFirstLaunch', false);
-  }
 
   // Run the app
   runApp(const AppEntry());

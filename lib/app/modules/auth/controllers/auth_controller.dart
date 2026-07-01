@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:pcl/app/modules/courses/controllers/courses_controller.dart';
+import 'package:pcl/app/modules/dashboard/controllers/dashboard_controller.dart';
+import 'package:pcl/app/modules/my_courses/controllers/my_courses_controller.dart';
 import 'package:pcl/app/routes/app_pages.dart';
 import 'package:pcl/app/data/services/auth_service.dart';
 import 'package:pcl/app/data/services/network_error_handler.dart';
 import 'package:pcl/app/services/validation_service.dart';
 import '../../../core/utils/app_logger.dart';
+import 'package:pcl/app/data/services/course_service.dart';
 
 class AuthController extends GetxController {
   final _validationService = Get.find<ValidationService>();
@@ -44,6 +48,14 @@ class AuthController extends GetxController {
   void onInit() {
     super.onInit();
     AppLogger.info('AuthController.onInit(): ready for auth flow');
+    if (Get.arguments != null) {
+      if (Get.arguments['language'] != null) {
+        selectedLanguage.value = Get.arguments['language'];
+      }
+      if (Get.arguments['difficulty'] != null) {
+        selectedExperienceLevel.value = Get.arguments['difficulty'];
+      }
+    }
   }
 
   @override
@@ -54,11 +66,7 @@ class AuthController extends GetxController {
 
   @override
   void onClose() {
-    AppLogger.info('AuthController.onClose(): disposing auth form controllers');
-    emailController.dispose();
-    passwordController.dispose();
-    nameController.dispose();
-    confirmPasswordController.dispose();
+    AppLogger.info('AuthController.onClose(): closed');
     super.onClose();
   }
 
@@ -81,9 +89,12 @@ class AuthController extends GetxController {
   void login() async {
     AppLogger.info('AuthController.login(): submitted');
     final emailError = _validationService.validateEmail(emailController.text);
-    final passwordError = _validationService.validatePassword(
-      passwordController.text,
-    );
+    
+    // Only check if password is provided for login, don't run strict validation
+    String? passwordError;
+    if (passwordController.text.isEmpty) {
+      passwordError = 'Please enter your password';
+    }
 
     if (emailError != null || passwordError != null) {
       AppLogger.warning('AuthController.login(): validation failed');
@@ -113,6 +124,10 @@ class AuthController extends GetxController {
       storage.write('userName', user.name ?? user.email ?? 'User');
       storage.write('userId', user.id);
       storage.write('userLanguage', user.lastActiveLanguage);
+      storage.write(
+        'isFirstLaunch',
+        false,
+      ); // No longer first launch after successful login
 
       AppLogger.info('AuthController.login(): success userId=${user.id}');
       Get.snackbar(
@@ -121,6 +136,41 @@ class AuthController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.withOpacity(0.1),
       );
+
+      // Process pending enrollment from registration
+      final pendingLang = storage.read('pending_enrollment_lang');
+      final pendingLevel = storage.read('pending_enrollment_level');
+
+      if (pendingLang != null) {
+        try {
+          AppLogger.debug('AuthController.login(): Processing pending enrollment for language $pendingLang');
+          final courseService = Get.find<CourseService>();
+          await courseService.enrollInLanguage(pendingLang, pendingLevel ?? 'beginner');
+          storage.remove('pending_enrollment_lang');
+          storage.remove('pending_enrollment_level');
+          AppLogger.info('AuthController.login(): Successfully auto-enrolled');
+        } catch (e) {
+          AppLogger.warning('AuthController.login(): Failed to process pending enrollment', e);
+        }
+      }
+
+      // Force refresh data for main controllers if they are already in memory
+      try {
+        if (Get.isRegistered<DashboardController>()) {
+          Get.find<DashboardController>().fetchData();
+        }
+        if (Get.isRegistered<MyCoursesController>()) {
+          Get.find<MyCoursesController>().fetchEnrolledCourses();
+        }
+        if (Get.isRegistered<CoursesController>()) {
+          Get.find<CoursesController>().fetchCourses();
+        }
+      } catch (e) {
+        AppLogger.warning(
+          'AuthController.login(): could not refresh controllers',
+          e,
+        );
+      }
 
       Get.offAllNamed(Routes.main);
     } on NetworkException catch (e, stackTrace) {
@@ -241,38 +291,36 @@ class AuthController extends GetxController {
         languageId: selectedLanguage.value,
         experienceLevel: selectedExperienceLevel.value,
       );
+      
+      // Save language for post-login auto-enrollment since backend doesn't populate languages_learning during registration
+      // The actual enrollment will happen after successful login when we have a valid token
+      if (selectedLanguage.value != null) {
+        try {
+          AppLogger.debug('AuthController.register(): Saving language for post-login auto-enroll');
+          final storage = GetStorage();
+          storage.write('pending_enrollment_lang', selectedLanguage.value);
+          storage.write('pending_enrollment_level', selectedExperienceLevel.value ?? 'beginner');
+        } catch (e) {
+          AppLogger.warning('AuthController.register(): Failed to save pending auto-enroll', e);
+        }
+      }
 
       // Handle Persistence
       final storage = GetStorage();
-      storage.write('isLoggedIn', true);
-      storage.write('userName', nameController.text);
-      storage.write('userEmail', user.email);
-      storage.write('userId', user.id);
-      storage.write('userLanguage', user.lastActiveLanguage);
-      storage.write('userExperienceLevel', selectedExperienceLevel.value);
-
-      // Save display name locally (not in backend API)
+      storage.write(
+        'isFirstLaunch',
+        false,
+      ); // No longer first launch after successful registration
 
       AppLogger.info('AuthController.register(): success userId=${user.id}');
       Get.snackbar(
         'Success',
-        'Account created successfully',
+        'Account created successfully. Please log in.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.withOpacity(0.1),
       );
 
-      Get.offAllNamed(
-        Routes.quiz,
-        arguments: {
-          'languageId': selectedLanguage.value ?? 'python_3',
-          'mappingId': 'UNIV_VAR', // Base concept
-          'majorTopicId': 'UNIV_VAR',
-          'numQuestions': 5,
-          'mode': 'diagnostic',
-          'difficulty': 0.5,
-          'isDiagnostic': true,
-        },
-      );
+      Get.offAllNamed(Routes.auth);
     } on NetworkException catch (e, stackTrace) {
       AppLogger.error(
         'AuthController.register(): network failure',

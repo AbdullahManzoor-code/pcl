@@ -252,25 +252,25 @@ class LoginView extends GetView<AuthController> {
               SizedBox(height: 24.h),
 
               // Google Sign-In button
-              SlideInAnimation(
-                index: 5,
-                child: Obx(
-                  () => AnimatedTapScale(
-                    onTap: () {
-                      HapticUtils.mediumImpact();
-                      controller.signInWithGoogle();
-                    },
-                    child: SocialLoginButton(
-                      text: 'Continue with Google',
-                      iconPath: 'assets/icons/google.png', // Add Google icon
-                      onPressed: () => controller.signInWithGoogle(),
-                      isLoading: controller.isGoogleLoading.value,
-                    ),
-                  ),
-                ),
-              ),
+              // SlideInAnimation(
+              //   index: 5,
+              //   child: Obx(
+              //     () => AnimatedTapScale(
+              //       onTap: () {
+              //         HapticUtils.mediumImpact();
+              //         controller.signInWithGoogle();
+              //       },
+              //       child: SocialLoginButton(
+              //         text: 'Continue with Google',
+              //         iconPath: 'assets/icons/google.png', // Add Google icon
+              //         onPressed: () => controller.signInWithGoogle(),
+              //         isLoading: controller.isGoogleLoading.value,
+              //       ),
+              //     ),
+              //   ),
+              // ),
 
-              SizedBox(height: 32.h),
+              // SizedBox(height: 32.h),
 
               // Sign up link
               SlideInAnimation(
@@ -291,7 +291,7 @@ class LoginView extends GetView<AuthController> {
                       TextButton(
                         onPressed: () {
                           HapticUtils.lightImpact();
-                          Get.toNamed('/register');
+                          Get.toNamed('/onboarding');
                         },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,

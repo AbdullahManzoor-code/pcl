@@ -144,11 +144,11 @@ class AppPages {
       page: () => const MyCoursesView(),
       binding: MyCoursesBinding(),
     ),
-    GetPage(
-      name: _Paths.landing,
-      page: () => const LandingView(),
-      binding: LandingBinding(),
-    ),
+    // GetPage(
+    //   name: _Paths.landing,
+    //   page: () => const LandingView(),
+    //   binding: LandingBinding(),
+    // ),
     GetPage(
       name: _Paths.practice,
       page: () => const PracticeView(),

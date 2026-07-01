@@ -179,7 +179,7 @@ class CourseDetailsController extends GetxController {
         for (var tp in progress.topics) {
           topicProgress[tp.majorTopicId] = {
             'completed':
-                tp.mastery > 0.5, // Arbitrary threshold for "completed" topic
+                tp.mastery > 0.0, // Mark completed if they have any mastery (i.e., took a test)
             'accuracy': (tp.confidence * 100).toInt(),
           };
         }
@@ -192,31 +192,51 @@ class CourseDetailsController extends GetxController {
         );
       }
 
-      final mergedTopics = roadmap.map((ct) {
-        final prog =
-            topicProgress[ct.majorTopicId] ??
-            {'completed': false, 'accuracy': 0};
-        return Topic(
+      bool isTopicLocked = false;
+      List<Topic> mergedTopics = [];
+
+      int completedTopicsCount = 0;
+
+      for (var ct in roadmap) {
+        final prog = topicProgress[ct.majorTopicId] ?? {'completed': false, 'accuracy': 0};
+        final bool isCompleted = prog['completed'];
+
+        if (isCompleted) {
+          completedTopicsCount++;
+        }
+
+        mergedTopics.add(Topic(
           id: ct.majorTopicId,
           name: ct.name,
-          completed: prog['completed'],
+          completed: isCompleted,
           accuracy: prog['accuracy'],
+          isLocked: isTopicLocked,
           subTopics: ct.subTopics.map((st) {
             return SubTopic(
               id: st,
               title: st.replaceAll('_', ' ').capitalizeFirst ?? st,
-              completed:
-                  prog['completed'], // In lack of subtopic progress tracking
-              isLocked: false,
+              completed: isCompleted, // In lack of subtopic progress tracking
+              isLocked: isTopicLocked,
               type: 'lesson',
             );
           }).toList(),
-        );
-      }).toList();
+        ));
+
+        // If a topic is not completed, lock all subsequent topics.
+        if (!isCompleted) {
+          isTopicLocked = true;
+        }
+      }
 
       topics.assignAll(mergedTopics);
+      
+      // Update the course model with the newly calculated topicsCompleted
+      if (course.value != null) {
+        course.value = course.value!.copyWith(topicsCompleted: completedTopicsCount);
+      }
+
       AppLogger.info(
-        'CourseDetailsController.fetchTopics(): topics loaded count=${mergedTopics.length}',
+        'CourseDetailsController.fetchTopics(): topics loaded count=${mergedTopics.length}, completed=$completedTopicsCount',
       );
     } catch (e, stackTrace) {
       AppLogger.error(
@@ -239,6 +259,18 @@ class CourseDetailsController extends GetxController {
     AppLogger.info(
       'CourseDetailsController.startTest(): topicId=${topic.id}, numQuestions=$numQuestions',
     );
+
+    if (topic.isLocked) {
+      AppLogger.warning(
+        'CourseDetailsController.startTest(): locked topic=${topic.id}',
+      );
+      Get.snackbar(
+        'Locked',
+        'Complete previous tests to unlock this one.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
 
     // We need to find the mappingId from the curriculum
     final curriculums = await _courseService.getCurriculum();

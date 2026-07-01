@@ -84,6 +84,15 @@ class MyCoursesView extends GetView<MyCoursesController> {
       pinned: true,
       backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
       elevation: 0,
+      actions: [
+        IconButton(
+          icon: Icon(Icons.refresh_rounded, color: isDark ? Colors.white : AppColors.darkBg),
+          onPressed: () {
+            HapticUtils.lightImpact();
+            controller.refreshCourses();
+          },
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: false,
         titlePadding: EdgeInsets.only(left: 24.w, bottom: 16.h),

@@ -1,7 +1,9 @@
+// Topic Model
 class Topic {
   final String id;
   final String name;
   final bool completed;
+  final bool isLocked;
   final int accuracy;
   final List<SubTopic> subTopics;
 
@@ -9,6 +11,7 @@ class Topic {
     required this.id,
     required this.name,
     this.completed = false,
+    this.isLocked = false,
     this.accuracy = 0,
     this.subTopics = const [],
   });
@@ -26,6 +29,7 @@ class Topic {
           json['title'] ??
           '', // Supporting 'title' from old JSON but targeting 'name'
       completed: json['is_completed'] ?? false,
+      isLocked: json['is_locked'] ?? false,
       accuracy: json['accuracy'] ?? 0,
       subTopics: subTopicsList,
     );
@@ -36,6 +40,7 @@ class Topic {
       'id': id,
       'name': name,
       'completed': completed,
+      'is_locked': isLocked,
       'accuracy': accuracy,
       'sub_topics': subTopics.map((v) => v.toJson()).toList(),
     };

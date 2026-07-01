@@ -57,7 +57,7 @@ class SplashController extends GetxController {
         AppLogger.info(
           'SplashController._startAppFlow(): not first launch, routing to landing',
         );
-        Get.offAllNamed(Routes.landing);
+        Get.offAllNamed(Routes.auth);
       }
     } catch (e, stackTrace) {
       AppLogger.error(
@@ -67,7 +67,7 @@ class SplashController extends GetxController {
       );
       // Fallback to landing page
       final bool isFirstLaunch = _storage.read('isFirstLaunch') ?? true;
-      Get.offAllNamed(isFirstLaunch ? Routes.onboarding : Routes.landing);
+      Get.offAllNamed(isFirstLaunch ? Routes.onboarding : Routes.auth);
     }
   }
 }

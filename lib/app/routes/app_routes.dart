@@ -20,7 +20,7 @@ abstract class Routes {
   static const main = _Paths.main;
   static const courses = _Paths.courses;
   static const myCourses = _Paths.myCourses;
-  static const landing = _Paths.landing;
+  // static const landing = _Paths.landing;
   static const analytics = _Paths.analytics;
   static const reports = _Paths.reports;
   static const register = _Paths.register;

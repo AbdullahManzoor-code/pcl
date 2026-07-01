@@ -75,6 +75,17 @@ class ProfileView extends GetView<ProfileController> {
                               '🕐  Recent Sessions',
                               isDark,
                               subtitle: 'Your last quiz performances',
+                              action: GestureDetector(
+                                onTap: () => Get.toNamed(Routes.resultHistory),
+                                child: Text(
+                                  'View All',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
                             ),
                             SizedBox(height: 8.h),
                             Padding(
@@ -1091,7 +1102,7 @@ class ProfileView extends GetView<ProfileController> {
   // SECTION HEADER
   // ══════════════════════════════════════════════════════════════════
 
-  Widget _buildSectionHeader(String title, bool isDark, {String? subtitle}) {
+  Widget _buildSectionHeader(String title, bool isDark, {String? subtitle, Widget? action}) {
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 0),
       child: Row(
@@ -1120,6 +1131,7 @@ class ProfileView extends GetView<ProfileController> {
               ],
             ),
           ),
+          if (action != null) action,
         ],
       ),
     );

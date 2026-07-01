@@ -158,142 +158,6 @@ class RegisterView extends GetView<AuthController> {
 
               SizedBox(height: 20.h),
 
-              // Language selection (optional)
-              SlideInAnimation(
-                index: 4,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Preferred Language (Optional)',
-                      style: GoogleFonts.inter(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Obx(
-                      () => Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: isDark
-                                ? AppColors.darkBorder
-                                : AppColors.lightBorder,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: DropdownButton<String>(
-                          value: controller.selectedLanguage.value,
-                          hint: Padding(
-                            padding: EdgeInsets.only(left: 16.w),
-                            child: Text('Select a language'),
-                          ),
-                          isExpanded: true,
-                          underline: SizedBox(),
-                          items: [
-                            DropdownMenuItem(
-                              value: null,
-                              child: Padding(
-                                padding: EdgeInsets.only(left: 16.w),
-                                child: Text('None'),
-                              ),
-                            ),
-                            ...AuthController.availableLanguages.map((lang) {
-                              return DropdownMenuItem(
-                                value: lang,
-                                child: Padding(
-                                  padding: EdgeInsets.only(left: 16.w),
-                                  child: Text(lang.replaceAll('_', ' ')),
-                                ),
-                              );
-                            }).toList(),
-                          ],
-                          onChanged: (value) {
-                            controller.selectedLanguage.value = value;
-                          },
-                          dropdownColor: isDark
-                              ? AppColors.darkBg
-                              : Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 20.h),
-
-              // Experience level selection (optional)
-              SlideInAnimation(
-                index: 4,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Experience Level (Optional)',
-                      style: GoogleFonts.inter(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Obx(
-                      () => Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: isDark
-                                ? AppColors.darkBorder
-                                : AppColors.lightBorder,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: DropdownButton<String>(
-                          value: controller.selectedExperienceLevel.value,
-                          hint: Padding(
-                            padding: EdgeInsets.only(left: 16.w),
-                            child: Text('Select your level'),
-                          ),
-                          isExpanded: true,
-                          underline: SizedBox(),
-                          items: [
-                            DropdownMenuItem(
-                              value: null,
-                              child: Padding(
-                                padding: EdgeInsets.only(left: 16.w),
-                                child: Text('None'),
-                              ),
-                            ),
-                            ...AuthController.availableExperienceLevels.map((
-                              level,
-                            ) {
-                              return DropdownMenuItem(
-                                value: level,
-                                child: Padding(
-                                  padding: EdgeInsets.only(left: 16.w),
-                                  child: Text(level.replaceAll('_', ' ')),
-                                ),
-                              );
-                            }).toList(),
-                          ],
-                          onChanged: (value) {
-                            controller.selectedExperienceLevel.value = value;
-                          },
-                          dropdownColor: isDark
-                              ? AppColors.darkBg
-                              : Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 20.h),
-
               // Terms & Conditions checkbox
               SlideInAnimation(
                 index: 6,
@@ -434,28 +298,28 @@ class RegisterView extends GetView<AuthController> {
                 ),
               ),
 
-              SizedBox(height: 24.h),
+              // SizedBox(height: 24.h),
 
-              // Google Sign-Up button
-              SlideInAnimation(
-                index: 9,
-                child: Obx(
-                  () => AnimatedTapScale(
-                    onTap: () {
-                      HapticUtils.mediumImpact();
-                      controller.signInWithGoogle();
-                    },
-                    child: SocialLoginButton(
-                      text: 'Sign up with Google',
-                      iconPath: 'assets/icons/google.png',
-                      onPressed: () => controller.signInWithGoogle(),
-                      isLoading: controller.isGoogleLoading.value,
-                    ),
-                  ),
-                ),
-              ),
+              // // Google Sign-Up button
+              // SlideInAnimation(
+              //   index: 9,
+              //   child: Obx(
+              //     () => AnimatedTapScale(
+              //       onTap: () {
+              //         HapticUtils.mediumImpact();
+              //         controller.signInWithGoogle();
+              //       },
+              //       child: SocialLoginButton(
+              //         text: 'Sign up with Google',
+              //         iconPath: 'assets/icons/google.png',
+              //         onPressed: () => controller.signInWithGoogle(),
+              //         isLoading: controller.isGoogleLoading.value,
+              //       ),
+              //     ),
+              //   ),
+              // ),
 
-              SizedBox(height: 32.h),
+              // SizedBox(height: 32.h),
 
               // Sign in link
               SlideInAnimation(

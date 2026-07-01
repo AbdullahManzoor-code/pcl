@@ -134,12 +134,6 @@ class OnboardingController extends GetxController {
     selectedDifficulty.value = id;
   }
 
-  void skip() {
-    AppLogger.warning('OnboardingController.skip(): skipping onboarding');
-    final storage = GetStorage();
-    storage.write('isFirstLaunch', false);
-    Get.offAllNamed(Routes.main);
-  }
 
   void next() {
     AppLogger.debug(
@@ -161,7 +155,13 @@ class OnboardingController extends GetxController {
         'OnboardingController.handleContinue(): language=${selectedLanguage.value}, difficulty=${selectedDifficulty.value}',
       );
       // storage.write('isFirstLaunch', false);
-      Get.toNamed(Routes.register);
+      Get.toNamed(
+        Routes.register,
+        arguments: {
+          'language': selectedLanguage.value,
+          'difficulty': selectedDifficulty.value,
+        },
+      );
     } else {
       AppLogger.warning(
         'OnboardingController.handleContinue(): selection incomplete',

@@ -21,6 +21,10 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/utils/haptic_utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../data/models/exam_api_models.dart';
+import '../../../routes/app_pages.dart';
+import '../../dashboard/controllers/dashboard_controller.dart';
+import '../../my_courses/controllers/my_courses_controller.dart';
+import '../../courses/controllers/courses_controller.dart';
 
 class ProfileController extends GetxController {
   final _validationService = Get.find<ValidationService>();
@@ -127,7 +131,10 @@ class ProfileController extends GetxController {
         final achData = await _achievementService.getAchievements();
         achievements.assignAll(achData);
       } catch (e) {
-        AppLogger.error('ProfileController.fetchProfile(): achievements failed', e);
+        AppLogger.error(
+          'ProfileController.fetchProfile(): achievements failed',
+          e,
+        );
         achievements.assignAll([]);
       }
 
@@ -136,10 +143,17 @@ class ProfileController extends GetxController {
         final history = await _examService.getExamHistory(limit: 5);
         sessionHistory.assignAll(history.sessions);
       } catch (e) {
-        AppLogger.error('ProfileController.fetchProfile(): session history failed', e);
+        AppLogger.error(
+          'ProfileController.fetchProfile(): session history failed',
+          e,
+        );
       }
     } catch (e, stackTrace) {
-      AppLogger.error('ProfileController.fetchProfile(): failed', e, stackTrace);
+      AppLogger.error(
+        'ProfileController.fetchProfile(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar(
         'Error',
         'Failed to load profile. Please try again.',
@@ -205,14 +219,19 @@ class ProfileController extends GetxController {
                 ),
                 ListTile(
                   leading: Icon(Icons.photo_library, color: AppColors.primary),
-                  title: Text('Choose from Gallery', style: GoogleFonts.inter()),
+                  title: Text(
+                    'Choose from Gallery',
+                    style: GoogleFonts.inter(),
+                  ),
                   onTap: () => Get.back(result: ImageSource.gallery),
                 ),
                 if (profileImageUrl.value != null)
                   ListTile(
                     leading: Icon(Icons.delete, color: AppColors.error),
-                    title: Text('Remove Picture',
-                        style: GoogleFonts.inter(color: AppColors.error)),
+                    title: Text(
+                      'Remove Picture',
+                      style: GoogleFonts.inter(color: AppColors.error),
+                    ),
                     onTap: () => Get.back(result: null),
                   ),
               ],
@@ -226,10 +245,13 @@ class ProfileController extends GetxController {
         GetStorage().remove('profilePicUrl');
         user.value = user.value?.copyWith(profilePicUrl: null);
         HapticUtils.lightImpact();
-        Get.snackbar('Success', 'Profile picture removed',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: AppColors.success.withOpacity(0.1),
-            colorText: AppColors.success);
+        Get.snackbar(
+          'Success',
+          'Profile picture removed',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: AppColors.success.withOpacity(0.1),
+          colorText: AppColors.success,
+        );
         return;
       }
 
@@ -239,8 +261,10 @@ class ProfileController extends GetxController {
             : Permission.photos;
         PermissionStatus status = await permission.request();
         if (!status.isGranted) {
-          Get.snackbar('Permission Denied',
-              'Please grant ${source == ImageSource.camera ? "camera" : "storage"} permission');
+          Get.snackbar(
+            'Permission Denied',
+            'Please grant ${source == ImageSource.camera ? "camera" : "storage"} permission',
+          );
           return;
         }
 
@@ -256,14 +280,21 @@ class ProfileController extends GetxController {
           GetStorage().write('profilePicUrl', image.path);
           user.value = user.value?.copyWith(profilePicUrl: image.path);
           HapticUtils.lightImpact();
-          Get.snackbar('Success', 'Profile picture updated',
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: AppColors.success.withOpacity(0.1),
-              colorText: AppColors.success);
+          Get.snackbar(
+            'Success',
+            'Profile picture updated',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: AppColors.success.withOpacity(0.1),
+            colorText: AppColors.success,
+          );
         }
       }
     } catch (e, stackTrace) {
-      AppLogger.error('ProfileController.changeProfilePicture(): failed', e, stackTrace);
+      AppLogger.error(
+        'ProfileController.changeProfilePicture(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar('Error', 'Failed to update profile picture');
     }
   }
@@ -301,12 +332,19 @@ class ProfileController extends GetxController {
       final updatedUser = await _authService.updateProfile(changes);
       user.value = updatedUser;
       Get.back();
-      Get.snackbar('Success', 'Profile updated successfully',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: AppColors.success.withOpacity(0.1),
-          colorText: AppColors.success);
+      Get.snackbar(
+        'Success',
+        'Profile updated successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.success.withOpacity(0.1),
+        colorText: AppColors.success,
+      );
     } catch (e, stackTrace) {
-      AppLogger.error('ProfileController.updateProfile(): failed', e, stackTrace);
+      AppLogger.error(
+        'ProfileController.updateProfile(): failed',
+        e,
+        stackTrace,
+      );
       Get.snackbar('Error', 'Failed to update profile. Please try again.');
     } finally {
       isLoading.value = false;
@@ -325,7 +363,9 @@ class ProfileController extends GetxController {
       Container(
         padding: EdgeInsets.all(24.r),
         decoration: BoxDecoration(
-          color: Get.isDarkMode ? AppColors.darkSurface : AppColors.lightSurface,
+          color: Get.isDarkMode
+              ? AppColors.darkSurface
+              : AppColors.lightSurface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         ),
         child: Column(
@@ -340,9 +380,13 @@ class ProfileController extends GetxController {
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
-            Text('Logout',
-                style: GoogleFonts.outfit(
-                    fontSize: 20.sp, fontWeight: FontWeight.bold)),
+            Text(
+              'Logout',
+              style: GoogleFonts.outfit(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             SizedBox(height: 12.h),
             Text(
               'Are you sure you want to logout?',
@@ -367,8 +411,14 @@ class ProfileController extends GetxController {
                     onPressed: () {
                       final storage = GetStorage();
                       storage.erase();
+                      
+                      // Delete controllers to clear memory so next login fetches fresh data
+                      Get.delete<DashboardController>(force: true);
+                      Get.delete<MyCoursesController>(force: true);
+                      Get.delete<CoursesController>(force: true);
+                      
                       Get.back();
-                      Get.offAllNamed(Routes.landing);
+                      Get.offAllNamed(Routes.auth);
                     },
                   ),
                 ),
@@ -383,10 +433,13 @@ class ProfileController extends GetxController {
   }
 
   Future<void> changePassword() async {
-    final newPassError =
-        _validationService.validatePassword(newPasswordController.text);
+    final newPassError = _validationService.validatePassword(
+      newPasswordController.text,
+    );
     final confirmError = _validationService.validateConfirmPassword(
-        newPasswordController.text, confirmNewPasswordController.text);
+      newPasswordController.text,
+      confirmNewPasswordController.text,
+    );
 
     if (newPassError != null || confirmError != null) {
       Get.snackbar('Validation Error', newPassError ?? confirmError!);
@@ -396,16 +449,24 @@ class ProfileController extends GetxController {
     isChangingPassword.value = true;
     try {
       await _authService.changePassword(
-          currentPasswordController.text, newPasswordController.text);
+        currentPasswordController.text,
+        newPasswordController.text,
+      );
       Get.back();
       Get.snackbar('Success', 'Password changed successfully');
       currentPasswordController.clear();
       newPasswordController.clear();
       confirmNewPasswordController.clear();
     } catch (e, stackTrace) {
-      AppLogger.error('ProfileController.changePassword(): failed', e, stackTrace);
-      Get.snackbar('Error',
-          'Failed to change password. Ensure current password is correct.');
+      AppLogger.error(
+        'ProfileController.changePassword(): failed',
+        e,
+        stackTrace,
+      );
+      Get.snackbar(
+        'Error',
+        'Failed to change password. Ensure current password is correct.',
+      );
     } finally {
       isChangingPassword.value = false;
     }

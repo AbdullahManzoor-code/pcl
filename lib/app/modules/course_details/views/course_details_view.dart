@@ -517,6 +517,14 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
           return AnimatedTapScale(
             onTap: () {
               HapticUtils.selectionClick();
+              if (topic.isLocked) {
+                Get.snackbar(
+                  'Locked',
+                  'Complete previous tests to unlock this one.',
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+                return;
+              }
               if (controller.selectedTopicId.value == topic.id) {
                 controller.selectedTopicId.value = null;
               } else {
@@ -557,7 +565,9 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
                           decoration: BoxDecoration(
                             color: topic.completed
                                 ? AppColors.success.withOpacity(0.1)
-                                : AppColors.primary.withOpacity(0.1),
+                                : topic.isLocked
+                                    ? Colors.grey.withOpacity(0.1)
+                                    : AppColors.primary.withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Center(
@@ -567,14 +577,20 @@ class CourseDetailsView extends GetView<CourseDetailsController> {
                                     color: AppColors.success,
                                     size: 24.sp,
                                   )
-                                : Text(
-                                    '${index + 1}',
-                                    style: GoogleFonts.outfit(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18.sp,
-                                    ),
-                                  ),
+                                : topic.isLocked
+                                    ? Icon(
+                                        Icons.lock_outline_rounded,
+                                        color: Colors.grey,
+                                        size: 20.sp,
+                                      )
+                                    : Text(
+                                        '${index + 1}',
+                                        style: GoogleFonts.outfit(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18.sp,
+                                        ),
+                                      ),
                           ),
                         ),
                         SizedBox(width: 16.w),

@@ -760,7 +760,7 @@ class QuizView extends GetView<QuizController> {
                         text: 'Submit',
                         onPressed:
                             controller.answers.length <
-                                controller.minSubmitQuestions
+                                controller.questions.length
                             ? null
                             : () {
                                 Get.back();
